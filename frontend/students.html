@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="إدارة السنوات والفرق الطلابية - تنظيم الطلاب حسب السنوات والفرق">
+  <title>إدارة الطلاب - مولد الجدول الدراسي</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <div class="loading-overlay hidden" id="globalLoader">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جار التحميل...</div>
+  </div>
+
+  <nav class="main-nav animate__animated animate__fadeIn" aria-label="القائمة الرئيسية">
+    <ul>
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="settings.html">إعدادات الكلية</a></li>
+      <li><a href="departments.html">إدارة الأقسام</a></li>
+      <li><a href="add-teachers.html">إضافة مدرسين</a></li>
+      <li><a href="students.html" class="active" aria-current="page">إدارة الطلاب</a></li>
+      <li><a href="courses.html">إدارة المواد</a></li>
+      <li><a href="rooms.html">إدارة الأماكن</a></li>
+      <li><a href="teachers.html">إدارة المدرسين</a></li>
+      <li><a href="generate.html">توليد الجدول</a></li>
+      <li><a href="schedule.html">عرض الجدول</a></li>
+    </ul>
+  </nav>
+
+  <main class="container animate__animated animate__fadeIn">
+    <header>
+      <h1 class="animate__animated animate__bounceIn">إدارة السنوات والفرق الطلابية</h1>
+      <p class="subtitle">تنظيم الطلاب حسب السنوات الدراسية والفرق</p>
+    </header>
+
+    <section class="section animate-slide" aria-labelledby="add-year-heading">
+      <h2 id="add-year-heading">إضافة سنة دراسية</h2>
+      <form id="yearForm" class="form-grid">
+        <div class="input-group">
+          <label for="yearName">اسم السنة الدراسية:</label>
+          <input type="text" id="yearName" placeholder="مثال: السنة الأولى, السنة الثانية" required
+                 aria-describedby="yearNameHelp">
+          <p id="yearNameHelp" class="input-hint">اسم واضح للسنة الدراسية</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="yearLevel">المستوى:</label>
+          <input type="number" id="yearLevel" min="1" max="6" value="1" required
+                 aria-describedby="yearLevelHelp">
+          <p id="yearLevelHelp" class="input-hint">المستوى الأكاديمي (1 للسنة الأولى، 2 للثانية، إلخ)</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="yearDept">القسم التابع:</label>
+          <select id="yearDept" required aria-describedby="yearDeptHelp">
+            <option value="">اختر القسم...</option>
+            <!-- Will be populated by JavaScript -->
+          </select>
+          <p id="yearDeptHelp" class="input-hint">القسم الأكاديمي التابع له هذه السنة</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="defaultGroups">عدد الفرق الافتراضي:</label>
+          <input type="number" id="defaultGroups" min="1" max="10" value="1"
+                 aria-describedby="defaultGroupsHelp">
+          <p id="defaultGroupsHelp" class="input-hint">عدد الفرق التي سيتم إنشاؤها تلقائياً</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="addYearBtn" class="btn-primary">
+            <span class="icon">➕</span>
+            <span class="text">إضافة سنة</span>
+          </button>
+          <button type="button" id="clearFormBtn" class="btn-accent">
+            <span class="icon">🗑️</span>
+            <span class="text">مسح النموذج</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="add-group-heading">
+      <h2 id="add-group-heading">إضافة فرقة جديدة</h2>
+      <form id="groupForm" class="form-grid">
+        <div class="input-group">
+          <label for="groupYear">السنة الدراسية:</label>
+          <select id="groupYear" required aria-describedby="groupYearHelp">
+            <option value="">اختر السنة...</option>
+            <!-- Will be populated by JavaScript -->
+          </select>
+          <p id="groupYearHelp" class="input-hint">السنة الدراسية التي تنتمي إليها الفرقة</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="groupName">اسم الفرقة:</label>
+          <input type="text" id="groupName" placeholder="مثال: الفرقة أ, الفرقة ب" required
+                 aria-describedby="groupNameHelp">
+          <p id="groupNameHelp" class="input-hint">اسم واضح للفرقة الطلابية</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="groupCode">كود الفرقة:</label>
+          <input type="text" id="groupCode" placeholder="مثال: G1, G2" 
+                 style="text-transform: uppercase" aria-describedby="groupCodeHelp">
+          <p id="groupCodeHelp" class="input-hint">كود مختصر للفرقة (اختياري)</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="groupStudents">عدد الطلاب:</label>
+          <input type="number" id="groupStudents" min="1" value="30"
+                 aria-describedby="groupStudentsHelp">
+          <p id="groupStudentsHelp" class="input-hint">عدد الطلاب في هذه الفرقة</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="addGroupBtn" class="btn-primary">
+            <span class="icon">➕</span>
+            <span class="text">إضافة فرقة</span>
+          </button>
+          <button type="button" id="clearGroupFormBtn" class="btn-accent">
+            <span class="icon">🗑️</span>
+            <span class="text">مسح النموذج</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="years-stats-heading">
+      <h2 id="years-stats-heading">إحصائيات الطلاب</h2>
+      <div class="stats-summary">
+        <div class="stat-card">
+          <div class="stat-icon">🏛️</div>
+          <h3>عدد الأقسام</h3>
+          <p id="deptsCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <h3>عدد السنوات</h3>
+          <p id="yearsCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <h3>عدد الفرق</h3>
+          <p id="groupsCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧑‍🎓</div>
+          <h3>إجمالي الطلاب</h3>
+          <p id="totalStudents" aria-live="polite">0</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="years-list-heading">
+      <div class="section-header">
+        <h2 id="years-list-heading">السنوات الدراسية والفرق</h2>
+        <div class="section-actions">
+          <div class="search-container">
+            <input type="text" id="yearSearch" placeholder="ابحث عن سنة/فرقة..." aria-label="بحث عن السنوات والفرق">
+            <span class="search-icon" aria-hidden="true">🔍</span>
+          </div>
+          <div class="filter-group">
+            <select id="filterDept" aria-label="تصفية حسب القسم">
+              <option value="">جميع الأقسام</option>
+            </select>
+            <select id="filterLevel" aria-label="تصفية حسب المستوى">
+              <option value="">جميع المستويات</option>
+              <option value="1">السنة الأولى</option>
+              <option value="2">السنة الثانية</option>
+              <option value="3">السنة الثالثة</option>
+              <option value="4">السنة الرابعة</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="yearsContainer" class="years-grid">
+        <div class="empty-message">
+          <p>لا توجد سنوات دراسية مسجلة بعد</p>
+          <button id="addSampleData" class="btn-small btn-secondary">
+            إضافة بيانات نموذجية
+          </button>
+        </div>
+      </div>
+
+      <div class="table-footer" id="paginationControls">
+        <div class="table-info">
+          <span id="currentCount">0</span> من <span id="totalCount">0</span> عنصر
+        </div>
+        <div class="pagination">
+          <button id="prevPage" class="pagination-btn" disabled>▶</button>
+          <span id="pageInfo">الصفحة 1 من 1</span>
+          <button id="nextPage" class="pagination-btn" disabled>◀</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="main-footer">
+    <p>نظام توليد الجداول الدراسية &copy; <span id="currentYear"></span></p>
+  </footer>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+    <i>🌙</i>
+  </button>
+
+  <script src="js/shared.js" defer></script>
+  <script src="js/students.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set current year in footer
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+    });
+  </script>
+</body>
+</html>

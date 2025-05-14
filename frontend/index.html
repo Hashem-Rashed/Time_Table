@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="نظام توليد الجداول الدراسية الذكي - أداة متكاملة لإدارة الجداول المدرسية">
+  <title>📘 مولد الجدول الدراسي الذكي</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- Preload critical resources -->
+  <link rel="preload" href="js/shared.js" as="script">
+  <link rel="preload" href="js/app.js" as="script">
+</head>
+<body>
+  <div class="loading-overlay hidden" id="globalLoader">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جار التحميل...</div>
+  </div>
+
+  <nav class="main-nav animate__animated animate__fadeIn" aria-label="القائمة الرئيسية">
+    <ul>
+      <li><a href="index.html" class="active" aria-current="page">الرئيسية</a></li>
+      <li><a href="settings.html">إعدادات الكلية</a></li>
+      <li><a href="departments.html">إدارة الأقسام</a></li>
+      <li><a href="add-teachers.html">إضافة مدرسين</a></li>
+      <li><a href="students.html">إدارة الطلاب</a></li>
+      <li><a href="courses.html">إدارة المواد</a></li>
+      <li><a href="rooms.html">إدارة الأماكن</a></li>
+      <li><a href="teachers.html">إدارة المدرسين</a></li>
+      <li><a href="generate.html">توليد الجدول</a></li>
+      <li><a href="schedule.html">عرض الجدول</a></li>
+    </ul>
+  </nav>
+
+  <main class="container animate__animated animate__fadeIn">
+    <header>
+      <h1 class="animate__animated animate__bounceIn">📘 نظام توليد الجداول الدراسية</h1>
+      <p class="subtitle" id="collegeNameSubtitle">نظام متكامل لإدارة وتوليد الجداول الدراسية</p>
+    </header>
+
+    <section aria-labelledby="quick-actions-heading">
+      <h2 id="quick-actions-heading" class="sr-only">إجراءات سريعة</h2>
+      <div class="quick-actions">
+        <a href="settings.html" class="quick-action-card animate-slide" aria-label="إعدادات الكلية">
+          <div class="action-icon" aria-hidden="true">⚙️</div>
+          <h3>إعدادات الكلية</h3>
+          <p>تعديل أيام الدراسة والأوقات</p>
+        </a>
+        
+        <a href="rooms.html" class="quick-action-card animate-slide" style="animation-delay: 0.1s" aria-label="إدارة القاعات">
+          <div class="action-icon" aria-hidden="true">🏫</div>
+          <h3>إدارة القاعات</h3>
+          <p>إضافة/حذف القاعات الدراسية</p>
+        </a>
+        
+        <a href="teachers.html" class="quick-action-card animate-slide" style="animation-delay: 0.2s" aria-label="إدارة المدرسين">
+          <div class="action-icon" aria-hidden="true">👨‍🏫</div>
+          <h3>إدارة المدرسين</h3>
+          <p>إضافة المدرسين وتوافرهم</p>
+        </a>
+        
+        <a href="generate.html" class="quick-action-card animate-slide" style="animation-delay: 0.3s" aria-label="توليد الجدول">
+          <div class="action-icon" aria-hidden="true">✨</div>
+          <h3>توليد الجدول</h3>
+          <p>إنشاء جدول دراسي جديد</p>
+        </a>
+        
+        <a href="schedule.html" class="quick-action-card animate-slide" style="animation-delay: 0.4s" aria-label="عرض الجدول">
+          <div class="action-icon" aria-hidden="true">📅</div>
+          <h3>عرض الجدول</h3>
+          <p>عرض وتصدير الجدول النهائي</p>
+        </a>
+
+        <a href="departments.html" class="quick-action-card animate-slide" style="animation-delay: 0.5s" aria-label="إدارة الأقسام">
+          <div class="action-icon" aria-hidden="true">🏛️</div>
+          <h3>إدارة الأقسام</h3>
+          <p>إضافة وتعديل الأقسام</p>
+        </a>
+        
+        <a href="#" class="quick-action-card animate-slide" style="animation-delay: 0.7s" aria-label="التقارير" id="reportsBtn">
+          <div class="action-icon" aria-hidden="true">📊</div>
+          <h3>التقارير</h3>
+          <p>عرض تقارير الجدول</p>
+        </a>
+      </div>
+    </section>
+
+    <section aria-labelledby="stats-heading">
+      <h2 id="stats-heading" class="sr-only">إحصائيات النظام</h2>
+      <div class="stats-summary animate-slide" style="animation-delay: 0.5s">
+        <div class="stat-card">
+          <div class="stat-icon">👨‍🏫</div>
+          <h3>عدد المدرسين</h3>
+          <p id="teachersCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🏫</div>
+          <h3>عدد القاعات</h3>
+          <p id="roomsCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <h3>عدد المواد</h3>
+          <p id="coursesCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧑‍🎓</div>
+          <h3>عدد الطلاب</h3>
+          <p id="studentsCount" aria-live="polite">0</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="recent-activity" aria-labelledby="recent-activity-heading">
+      <h2 id="recent-activity-heading">آخر التحديثات</h2>
+      <div id="activityFeed" class="activity-feed">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="main-footer">
+    <p>نظام توليد الجداول الدراسية &copy; <span id="currentYear"></span></p>
+    <p>الإصدار 2.0.0</p>
+  </footer>
+
+  <script src="js/shared.js" defer></script>
+  <script src="js/app.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set current year in footer
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+      
+      // Set college name if available
+      if (SharedData.settings?.collegeName) {
+        document.getElementById('collegeNameSubtitle').textContent = 
+          `${SharedData.settings.collegeName} - نظام متكامل لإدارة الجداول الدراسية`;
+      }
+      
+      // Update stats
+      document.getElementById('teachersCount').textContent = SharedData.teachers.length;
+      document.getElementById('roomsCount').textContent = SharedData.rooms.length;
+      document.getElementById('coursesCount').textContent = SharedData.courses.length;
+      
+      // Calculate total students
+      const totalStudents = SharedData.studentYears?.reduce((total, year) => {
+        return total + year.groups.reduce((sum, group) => sum + (group.students || 0), 0);
+      }, 0) || 0;
+      document.getElementById('studentsCount').textContent = totalStudents;
+            
+      // Hide loader
+      document.getElementById('globalLoader').classList.add('hidden');
+    });
+
+    function updateActivityFeed() {
+      const feed = document.getElementById('activityFeed');
+      if (!feed) return;
+      
+      const activities = [];
+      
+      // Add last schedule generation if exists
+      if (SharedData.schedule && SharedData.schedule.length > 0) {
+        const lastGenerated = SharedData.lastScheduleGeneration || new Date().toISOString();
+        activities.push({
+          type: 'schedule',
+          date: new Date(lastGenerated),
+          count: SharedData.schedule.length
+        });
+      }
+      
+      // Add recent teachers added (last 3)
+      if (SharedData.teachers.length > 0) {
+        const sortedTeachers = [...SharedData.teachers]
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+          .slice(0, 3);
+        
+        sortedTeachers.forEach(teacher => {
+          activities.push({
+            type: 'teacher',
+            name: teacher.name,
+            date: new Date(teacher.createdAt || Date.now()),
+            subject: teacher.subject
+          });
+        });
+      }
+      
+      // Add recent courses added (last 2)
+      if (SharedData.courses.length > 0) {
+        const sortedCourses = [...SharedData.courses]
+          .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+          .slice(0, 2);
+        
+        sortedCourses.forEach(course => {
+          activities.push({
+            type: 'course',
+            name: course.name,
+            date: new Date(course.createdAt || Date.now()),
+            code: course.code
+          });
+        });
+      }
+      
+      // Sort all activities by date (newest first)
+      activities.sort((a, b) => b.date - a.date);
+      
+      // Render activities
+      if (activities.length === 0) {
+        feed.innerHTML = '<p class="empty-activity">لا يوجد نشاط حديث</p>';
+        return;
+      }
+      
+      feed.innerHTML = activities.map(activity => {
+        const dateStr = activity.date.toLocaleDateString('ar-EG', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        if (activity.type === 'schedule') {
+          return `
+            <div class="activity-item schedule-activity">
+              <span class="activity-icon">📅</span>
+              <div class="activity-content">
+                <p>تم توليد جدول جديد يحتوي على ${activity.count} حصة</p>
+                <time datetime="${activity.date.toISOString()}">${dateStr}</time>
+              </div>
+            </div>
+          `;
+        } else if (activity.type === 'teacher') {
+          return `
+            <div class="activity-item teacher-activity">
+              <span class="activity-icon">👨‍🏫</span>
+              <div class="activity-content">
+                <p>تم إضافة المدرس <strong>${activity.name}</strong></p>
+                <time datetime="${activity.date.toISOString()}">${dateStr}</time>
+              </div>
+            </div>
+          `;
+        } else if (activity.type === 'course') {
+          return `
+            <div class="activity-item course-activity">
+              <span class="activity-icon">📚</span>
+              <div class="activity-content">
+                <p>تم إضافة المادة <strong>${activity.name}</strong> (${activity.code})</p>
+                <time datetime="${activity.date.toISOString()}">${dateStr}</time>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+  </script>
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+    <i>🌙</i>
+  </button>
+
+  <script>
+    // Dark mode toggle functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      const themeToggle = document.getElementById('themeToggle');
+      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      // Check for saved theme preference or use system preference
+      const currentTheme = localStorage.getItem('theme') || 
+                          (prefersDarkScheme.matches ? 'dark' : 'light');
+      
+      // Apply the current theme
+      if (currentTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggle.innerHTML = '<i>☀️</i>';
+      }
+      
+      // Toggle theme on button click
+      themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        
+        if (currentTheme === 'dark') {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('theme', 'light');
+          themeToggle.innerHTML = '<i>🌙</i>';
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          localStorage.setItem('theme', 'dark');
+          themeToggle.innerHTML = '<i>☀️</i>';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

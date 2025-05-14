@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="إعدادات الكلية - تكوين أيام الدراسة وأوقات العمل">
+  <title>إعدادات الكلية - مولد الجدول الدراسي</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <style>
+    /* Toast styles */
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 4px;
+      color: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      max-width: 300px;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .toast-success {
+      background-color: #28a745;
+    }
+    .toast-error {
+      background-color: #dc3545;
+    }
+    .toast-warning {
+      background-color: #ffc107;
+      color: #212529;
+    }
+    .toast-info {
+      background-color: #17a2b8;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-out {
+      animation: fadeOut 0.3s ease-out;
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+    
+    /* Current settings styles */
+    .current-settings {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      margin-top: 20px;
+    }
+    
+    .setting-item {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--light-color);
+    }
+    
+    .setting-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .setting-item h3 {
+      color: var(--primary-color);
+      margin-bottom: 5px;
+    }
+    
+    .setting-item p {
+      font-size: 1.1rem;
+      color: var(--text-color);
+    }
+    
+    /* Time select styles */
+    .time-select {
+      padding: 10px 15px;
+      border-radius: 5px;
+      border: 1px solid var(--gray-color);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      font-family: 'Tajawal', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay hidden" id="globalLoader">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جار التحميل...</div>
+  </div>
+
+  <nav class="main-nav animate__animated animate__fadeIn" aria-label="القائمة الرئيسية">
+    <ul>
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="settings.html" class="active" aria-current="page">إعدادات الكلية</a></li>
+      <li><a href="departments.html">إدارة الأقسام</a></li>
+      <li><a href="add-teachers.html">إضافة مدرسين</a></li>
+      <li><a href="students.html">إدارة الطلاب</a></li>
+      <li><a href="courses.html">إدارة المواد</a></li>
+      <li><a href="rooms.html">إدارة الأماكن</a></li>
+      <li><a href="teachers.html">إدارة المدرسين</a></li>
+      <li><a href="generate.html">توليد الجدول</a></li>
+      <li><a href="schedule.html">عرض الجدول</a></li>
+    </ul>
+  </nav>
+
+  <main class="container animate__animated animate__fadeIn">
+    <header>
+      <h1 class="animate__animated animate__bounceIn">إعدادات الكلية</h1>
+      <p class="subtitle">تكوين الإعدادات الأساسية للجدول الدراسي</p>
+    </header>
+
+    <section class="section animate-slide" aria-labelledby="study-settings-heading">
+      <h2 id="study-settings-heading">إعدادات الدراسة</h2>
+      
+      <form id="settingsForm" aria-label="نموذج إعدادات الدراسة">
+        <div class="form-grid">
+          <div class="input-group">
+            <fieldset>
+              <legend>أيام الدراسة</legend>
+              <div class="days-checkbox-container" role="group" aria-labelledby="days-legend">
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="السبت">
+                  <span>السبت</span>
+                </label>
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="الأحد">
+                  <span>الأحد</span>
+                </label>
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="الإثنين">
+                  <span>الإثنين</span>
+                </label>
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="الثلاثاء">
+                  <span>الثلاثاء</span>
+                </label>
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="الأربعاء">
+                  <span>الأربعاء</span>
+                </label>
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="الخميس">
+                  <span>الخميس</span>
+                </label>
+                <label class="day-checkbox">
+                  <input type="checkbox" name="studyDays" value="الجمعة">
+                  <span>الجمعة</span>
+                </label>
+              </div>
+              <p class="input-hint">اختر الأيام التي ستكون فيها الدراسة فعالة</p>
+            </fieldset>
+          </div>
+
+          <div class="input-group">
+            <fieldset>
+              <legend>أوقات الدراسة</legend>
+              <div class="time-range-container">
+                <div class="input-group">
+                  <label for="startHour">ساعة البدء:</label>
+                  <select id="startHour" class="time-select" aria-describedby="startHourHelp">
+                    <option value="5">5:00 صباحاً</option>
+                    <option value="6">6:00 صباحاً</option>
+                    <option value="7">7:00 صباحاً</option>
+                    <option value="8">8:00 صباحاً</option>
+                    <option value="9">9:00 صباحاً</option>
+                    <option value="10">10:00 صباحاً</option>
+                    <option value="11">11:00 صباحاً</option>
+                    <option value="12">12:00 ظهراً</option>
+                    <option value="13">1:00 مساءً</option>
+                    <option value="14">2:00 مساءً</option>
+                    <option value="15">3:00 مساءً</option>
+                  </select>
+                  <p id="startHourHelp" class="input-hint">وقت بداية أول حصة في اليوم</p>
+                </div>
+                <div class="input-group">
+                  <label for="endHour">ساعة الانتهاء:</label>
+                  <select id="endHour" class="time-select" aria-describedby="endHourHelp">
+                    <option value="12">12:00 ظهراً</option>
+                    <option value="13">1:00 مساءً</option>
+                    <option value="14">2:00 مساءً</option>
+                    <option value="15">3:00 مساءً</option>
+                    <option value="16">4:00 مساءً</option>
+                    <option value="17">5:00 مساءً</option>
+                    <option value="18">6:00 مساءً</option>
+                    <option value="19">7:00 مساءً</option>
+                    <option value="20">8:00 مساءً</option>
+                    <option value="21">9:00 مساءً</option>
+                    <option value="22">10:00 مساءً</option>
+                  </select>
+                  <p id="endHourHelp" class="input-hint">وقت نهاية آخر حصة في اليوم</p>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="saveSettingsBtn" class="btn-primary">
+            <span class="icon">💾</span>
+            <span class="text">حفظ الإعدادات</span>
+          </button>
+          <button type="button" id="resetBtn" class="btn-accent">
+            <span class="icon">🔄</span>
+            <span class="text">إعادة تعيين</span>
+          </button>
+          <button type="button" id="exportBtn" class="btn-secondary">
+            <span class="icon">📤</span>
+            <span class="text">تصدير الإعدادات</span>
+          </button>
+          <button type="button" id="importBtn" class="btn-secondary">
+            <span class="icon">📥</span>
+            <span class="text">استيراد الإعدادات</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="current-settings-heading">
+      <h2 id="current-settings-heading">الإعدادات الحالية</h2>
+      <div class="current-settings">
+        <div class="setting-item">
+          <h3>أيام الدراسة:</h3>
+          <p id="currentDaysDisplay">السبت إلى الخميس</p>
+        </div>
+        <div class="setting-item">
+          <h3>ساعات العمل:</h3>
+          <p id="currentHoursDisplay">8:00 صباحاً - 5:00 مساءً</p>
+        </div>
+        <div class="setting-item">
+          <h3>عدد ساعات العمل اليومية:</h3>
+          <p id="dailyHoursDisplay">9 ساعات</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="main-footer">
+    <p>نظام توليد الجداول الدراسية &copy; <span id="currentYear"></span></p>
+  </footer>
+
+  <!-- Load shared.js FIRST -->
+  <script src="js/shared.js" defer></script>
+  <script src="js/settings.js" defer></script>
+
+  <!-- Dark mode toggle button -->
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+    <i>🌙</i>
+  </button>
+</body>
+</html>

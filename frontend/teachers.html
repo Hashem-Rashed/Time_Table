@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="إدارة المدرسين - تسجيل وتعديل بيانات المدرسين وتوافرهم">
+  <title>إدارة المدرسين - مولد الجدول الدراسي</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- Preload critical resources -->
+  <link rel="preload" href="js/shared.js" as="script">
+  <link rel="preload" href="js/teachers.js" as="script">
+</head>
+<body>
+  <div class="loading-overlay hidden" id="globalLoader">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جار التحميل...</div>
+  </div>
+
+  <nav class="main-nav animate__animated animate__fadeIn" aria-label="القائمة الرئيسية">
+    <ul>
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="settings.html">إعدادات الكلية</a></li>
+      <li><a href="departments.html">إدارة الأقسام</a></li>
+      <li><a href="add-teachers.html">إضافة مدرسين</a></li>
+      <li><a href="students.html">إدارة الطلاب</a></li>
+      <li><a href="courses.html">إدارة المواد</a></li>
+      <li><a href="rooms.html">إدارة الأماكن</a></li>
+      <li><a href="teachers.html" class="active" aria-current="page">إدارة المدرسين</a></li>
+      <li><a href="generate.html">توليد الجدول</a></li>
+      <li><a href="schedule.html">عرض الجدول</a></li>
+    </ul>
+  </nav>
+
+  <main class="container animate__animated animate__fadeIn">
+    <header>
+      <h1 class="animate__animated animate__bounceIn">إدارة المدرسين</h1>
+      <p class="subtitle">تسجيل وتعديل بيانات المدرسين وتوافرهم</p>
+    </header>
+
+    <section class="section animate-slide" aria-labelledby="add-teacher-heading">
+      <h2 id="add-teacher-heading">إضافة مدرس جديد</h2>
+      <form id="teacherForm" class="form-grid">
+        <!-- Personal Information -->
+        <div class="input-group">
+          <label for="teacherName">اسم المدرس:</label>
+          <select id="teacherName" required>
+          <option value="">اختر اسم المدرس...</option>
+          ${SharedData.basicTeachers.map(t => `
+              <option value="${t.id}">${t.name}</option>
+          `).join('')}
+          </select>
+          <p id="teacherNameHelp" class="input-hint">اختر اسم المدرس من القائمة</p>
+        </div>
+        
+        <!-- Department and Type -->
+        <div class="input-group">
+          <label for="teacherDept">القسم:</label>
+          <select id="teacherDept" required aria-describedby="teacherDeptHelp">
+            <option value="">اختر القسم...</option>
+            <!-- Will be populated by JavaScript -->
+          </select>
+          <p id="teacherDeptHelp" class="input-hint">القسم الأكاديمي التابع له المدرس</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="teacherType">نوع المدرس:</label>
+          <select id="teacherType" aria-describedby="teacherTypeHelp">
+            <option value="professor">أستاذ دكتور</option>
+            <option value="assistant">معيد</option>
+            <option value="lecturer">مدرس</option>
+            <option value="visiting">أستاذ زائر</option>
+          </select>
+          <p id="teacherTypeHelp" class="input-hint">يؤثر على أولوية الجدولة</p>
+        </div>
+        
+        <!-- Course Information -->
+        <div class="input-group">
+          <label for="teacherCourse">المادة:</label>
+          <select id="teacherCourse" required aria-describedby="teacherCourseHelp">
+            <option value="">اختر المادة...</option>
+            <!-- Will be populated by JavaScript -->
+          </select>
+          <p id="teacherCourseHelp" class="input-hint">المادة الرئيسية التي يدرسها المدرس</p>
+        </div>
+        
+        <!-- Lesson Information -->
+        <div class="input-group">
+          <label for="requiredLessons">عدد الحصص الأسبوعية:</label>
+          <input type="number" id="requiredLessons" placeholder="عدد الحصص" min="1" max="20" value="2" required
+                 aria-describedby="requiredLessonsHelp">
+          <p id="requiredLessonsHelp" class="input-hint">عدد الحصص المطلوبة لكل أسبوع</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="lessonDuration">مدة الحصة (ساعات):</label>
+          <input type="number" id="lessonDuration" placeholder="مدة الحصة" min="1" max="3" value="1" required
+                 aria-describedby="lessonDurationHelp">
+          <p id="lessonDurationHelp" class="input-hint">عادة تكون 1 أو 2 ساعة</p>
+        </div>
+        
+        <div class="input-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="requiresLab" aria-describedby="requiresLabHelp">
+            <span>يحتاج معمل</span>
+          </label>
+          <p id="requiresLabHelp" class="input-hint">حدد إذا كانت المادة تحتاج معمل</p>
+        </div>
+        
+        <!-- Additional Information -->
+        <div class="input-group full-width">
+          <label for="teacherNotes">ملاحظات:</label>
+          <textarea id="teacherNotes" placeholder="أي ملاحظات إضافية عن المدرس" 
+                    aria-describedby="teacherNotesHelp"></textarea>
+          <p id="teacherNotesHelp" class="input-hint">مثل تخصص دقيق أو أي قيود إضافية</p>
+        </div>
+      </form>
+      
+      <!-- Availability Section -->
+      <h3 class="subheading">توافر المدرس:</h3>
+      <div class="availability-controls">
+        <button id="selectAllAvailability" class="btn-small btn-primary">
+          <span class="icon">✓</span>
+          <span class="text">تحديد الكل</span>
+        </button>
+        <button id="deselectAllAvailability" class="btn-small btn-accent">
+          <span class="icon">✗</span>
+          <span class="text">إلغاء الكل</span>
+        </button>
+        <button id="saveTemplateBtn" class="btn-small btn-secondary">
+          <span class="icon">💾</span>
+          <span class="text">حفظ كقالب</span>
+        </button>
+        <button id="loadTemplateBtn" class="btn-small btn-secondary">
+          <span class="icon">📂</span>
+          <span class="text">تحميل قالب</span>
+        </button>
+      </div>
+      
+      <div id="availabilityGrid" class="availability-grid" aria-label="جدول توافر المدرس">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" form="teacherForm" id="addTeacherBtn" class="btn-primary">
+          <span class="icon">➕</span>
+          <span class="text" id="submitTeacherText">إضافة مدرس</span>
+        </button>
+        <button type="button" id="clearFormBtn" class="btn-accent">
+          <span class="icon">🗑️</span>
+          <span class="text">مسح النموذج</span>
+        </button>
+        <button type="button" id="cancelEditBtn" class="btn-accent hidden">
+          <span class="icon">✖</span>
+          <span class="text">إلغاء التعديل</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="teacher-stats-heading">
+      <h2 id="teacher-stats-heading">إحصائيات المدرسين</h2>
+      <div class="stats-summary">
+        <div class="stat-card">
+          <div class="stat-icon">👨‍🏫</div>
+          <h3>عدد المدرسين</h3>
+          <p id="teacherCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎓</div>
+          <h3>عدد الأساتذة</h3>
+          <p id="professorCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <h3>عدد المعيدين</h3>
+          <p id="assistantCount" aria-live="polite">0</p>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱️</div>
+          <h3>إجمالي الحصص</h3>
+          <p id="totalLessons" aria-live="polite">0</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="teacher-list-heading">
+      <div class="section-header">
+        <h2 id="teacher-list-heading">قائمة المدرسين</h2>
+        <div class="section-actions">
+          <div class="search-container">
+            <label for="teacherSearch" class="sr-only">بحث المدرسين</label>
+            <input type="text" id="teacherSearch" placeholder="ابحث عن مدرس...">
+            <span class="search-icon">🔍</span>
+          </div>
+          <div class="filter-group">
+            <select id="filterDept">
+              <option value="">جميع الأقسام</option>
+            </select>
+            <select id="filterType">
+              <option value="">جميع الأنواع</option>
+              <option value="professor">أساتذة</option>
+              <option value="assistant">معيدين</option>
+              <option value="lecturer">مدرسين</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <div class="table-responsive">
+          <table id="teachersTable" class="data-table" aria-describedby="teacher-list-heading">
+            <thead>
+              <tr>
+                <th scope="col" width="20%">اسم المدرس</th>
+                <th scope="col" width="15%">القسم</th>
+                <th scope="col" width="10%">النوع</th>
+                <th scope="col" width="20%">المادة</th>
+                <th scope="col" width="10%">الحصص</th>
+                <th scope="col" width="10%">المدة</th>
+                <th scope="col" width="10%">معمل</th>
+                <th scope="col" width="15%">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Will be populated by JavaScript -->
+              <tr class="empty-row">
+                <td colspan="8">
+
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="table-footer">
+        <div class="table-info" id="tableInfo">
+          عرض <span id="currentCount">0</span> من <span id="totalCount">0</span> مدرس
+        </div>
+        <div class="pagination">
+          <button id="prevPage" class="pagination-btn" disabled>
+            <span class="icon">▶</span>
+          </button>
+          <span id="pageInfo">الصفحة 1</span>
+          <button id="nextPage" class="pagination-btn" disabled>
+            <span class="icon">◀</span>
+          </button>
+          <button id="deleteAllTeachers" class="btn-danger">
+            <span class="icon">🗑️</span>
+            <span class="text">حذف الكل</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="main-footer">
+    <p>نظام توليد الجداول الدراسية &copy; <span id="currentYear"></span></p>
+  </footer>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+    <i>🌙</i>
+  </button>
+
+  <script src="js/shared.js" defer></script>
+  <script src="js/teachers.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set current year in footer
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+    });
+  </script>
+</body>
+</html>

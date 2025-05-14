@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="عرض الجدول الدراسي النهائي - تصدير ومشاركة الجدول">
+  <title>عرض الجدول - مولد الجدول الدراسي</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- Preload critical resources -->
+  <link rel="preload" href="js/shared.js" as="script">
+  <link rel="preload" href="js/schedule.js" as="script">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+</head>
+<body>
+  <div class="loading-overlay hidden" id="globalLoader">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جار التحميل...</div>
+  </div>
+
+  <nav class="main-nav animate__animated animate__fadeIn" aria-label="القائمة الرئيسية">
+    <ul>
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="settings.html">إعدادات الكلية</a></li>
+      <li><a href="departments.html">إدارة الأقسام</a></li>
+      <li><a href="add-teachers.html">إضافة مدرسين</a></li>
+      <li><a href="students.html">إدارة الطلاب</a></li>
+      <li><a href="courses.html">إدارة المواد</a></li>
+      <li><a href="rooms.html">إدارة الأماكن</a></li>
+      <li><a href="teachers.html">إدارة المدرسين</a></li>
+      <li><a href="generate.html">توليد الجدول</a></li>
+      <li><a href="schedule.html" class="active" aria-current="page">عرض الجدول</a></li>
+    </ul>
+  </nav>
+
+  <main class="container animate__animated animate__fadeIn">
+    <div class="schedule-header">
+      <div class="header-content">
+        <h1 class="formal-header animate__animated animate__bounceIn">
+          <span class="header-icon">📅</span>
+          <span>الجدول الدراسي النهائي</span>
+          <span class="header-details" id="scheduleDetails"></span>
+        </h1>
+        <p class="schedule-subtitle" id="scheduleSubtitle">الفصل الدراسي الأول 2023/2024</p>
+      </div>
+      
+      <div class="schedule-actions" id="scheduleActions">
+        <div class="action-group">
+          <button id="downloadPdfBtn" class="btn-success">
+            <span class="icon">📕</span>
+            <span class="text">تحميل PDF</span>
+          </button>
+          <button id="downloadExcelBtn" class="btn-success">
+            <span class="icon">📊</span>
+            <span class="text">تحميل Excel</span>
+          </button>
+        </div>
+        <div class="action-group">
+          <button id="printScheduleBtn" class="btn-secondary">
+            <span class="icon">🖨️</span>
+            <span class="text">طباعة</span>
+          </button>
+          <button id="refreshScheduleBtn" class="btn-secondary">
+            <span class="icon">🔄</span>
+            <span class="text">تحديث</span>
+          </button>
+          <button id="deleteScheduleBtn" class="btn-danger">
+            <span class="icon">🗑️</span>
+            <span class="text">حذف الجدول</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="schedule-controls">
+      <div class="schedule-filters">
+        <div class="filter-group">
+          <label for="deptFilter">القسم:</label>
+          <select id="deptFilter">
+            <option value="">جميع الأقسام</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="teacherFilter">المدرس:</label>
+          <select id="teacherFilter" disabled>
+            <option value="">اختر القسم أولاً</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="roomFilter">القاعة:</label>
+          <select id="roomFilter">
+            <option value="">جميع القاعات</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="view-options">
+        <button id="toggleCompactView" class="btn-small btn-secondary active" data-view="normal">
+          <span class="icon">↔</span>
+          <span class="text">العرض العادي</span>
+        </button>
+        <button id="toggleColorView" class="btn-small btn-secondary" data-view="color">
+          <span class="icon">🎨</span>
+          <span class="text">التلوين حسب القسم</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="schedule-stats" id="scheduleStats">
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+          <h3>إكتمال الجدول</h3>
+          <div class="progress-container">
+            <div class="progress-bar" id="completionBar" style="width: 0%"></div>
+          </div>
+          <p class="stat-value" id="completionPercent">0%</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-content">
+          <h3>جودة الجدول</h3>
+          <p class="stat-value" id="scheduleScore">0</p>
+          <p class="stat-range">من 100</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-content">
+          <h3>عدد الحصص</h3>
+          <p class="stat-value" id="totalLessons">0</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👨‍🏫</div>
+        <div class="stat-content">
+          <h3>عدد المدرسين</h3>
+          <p class="stat-value" id="totalTeachers">0</p>
+        </div>
+      </div>
+    </div>
+
+   <div id="scheduleContainer" class="schedule-container"> 
+  <div class="schedule-view-options">
+    <div class="view-format">
+      <label>نمط العرض:</label>
+      <select id="viewFormat">
+        <option value="daily">يومي</option>
+        <option value="weekly">أسبوعي</option>
+        <option value="teacher">حسب المدرس</option>
+        <option value="room">حسب القاعة</option>
+      </select>
+    </div>
+    <div class="color-coding">
+      <label>التلوين:</label>
+      <select id="colorScheme">
+        <option value="department">حسب القسم</option>
+        <option value="year">حسب السنة</option>
+        <option value="subject">حسب المادة</option>
+        <option value="none">بدون تلوين</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="finalSchedule" class="schedule-output">
+    <!-- Dynamic content will be inserted here -->
+  </div>
+
+  <div class="schedule-legend" id="scheduleLegend">
+    <h3>مفتاح الجدول:</h3>
+    <div class="legend-items" id="legendItems"></div>
+    <div class="schedule-stats">
+      <div class="stat-item">
+        <span class="stat-label">إجمالي الحصص:</span>
+        <span id="totalLessonsStat" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">عدد المدرسين:</span>
+        <span id="totalTeachersStat" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">عدد القاعات:</span>
+        <span id="totalRoomsStat" class="stat-value">0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <div id="scheduleAnalysis" class="schedule-analysis">
+      <div class="analysis-header">
+        <h2>تحليل الجدول</h2>
+        <button id="toggleAnalysis" class="btn-small btn-secondary">
+          <span class="icon">📊</span>
+          <span class="text">إظهار/إخفاء التحليل</span>
+        </button>
+      </div>
+      <div class="analysis-content" id="analysisContent">
+        <!-- Will be populated by JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <footer class="main-footer">
+    <p>نظام توليد الجداول الدراسية &copy; <span id="currentYear"></span></p>
+  </footer>
+
+  <script src="js/shared.js" defer></script>
+  <script src="js/schedule.js" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set current year in footer
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+      
+      // View toggle functionality
+      const toggleButtons = document.querySelectorAll('.view-options button');
+      if (toggleButtons) {
+        toggleButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            toggleButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            const schedule = document.getElementById('finalSchedule');
+            if (schedule) {
+              if (button.dataset.view === 'color') {
+                schedule.classList.add('color-view');
+              } else {
+                schedule.classList.remove('color-view');
+              }
+            }
+          });
+        });
+      }
+      
+      // Print functionality
+      const printBtn = document.getElementById('printScheduleBtn');
+      if (printBtn) {
+        printBtn.addEventListener('click', () => {
+          const scheduleElement = document.getElementById('finalSchedule');
+          if (scheduleElement) {
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+              printWindow.document.write(`
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                  <title>الجدول الدراسي - طباعة</title>
+                  <style>
+                    body { font-family: 'Tajawal', sans-serif; padding: 20px; }
+                    h1 { color: #8e44ad; text-align: center; }
+                    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+                    th { background-color: #8e44ad; color: white; }
+                    .time-slot { min-height: 60px; padding: 5px; }
+                    .subject { font-weight: bold; }
+                    .teacher { font-size: 0.9em; }
+                    .room { color: #e74c3c; font-weight: bold; }
+                  </style>
+                </head>
+                <body>
+                  <h1>الجدول الدراسي</h1>
+                  <p style="text-align:center;">${document.getElementById('scheduleDetails')?.textContent || ''}</p>
+                  ${scheduleElement.innerHTML}
+                  <p style="text-align:center; margin-top: 30px;">تم الطباعة في ${new Date().toLocaleDateString('ar-EG')}</p>
+                </body>
+                </html>
+              `);
+              
+              printWindow.document.close();
+              printWindow.focus();
+              setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+              }, 500);
+            }
+          }
+        });
+      }
+    });
+</script>
+
+  <!-- Dark mode toggle button - Keep this single instance -->
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+    <i>🌙</i>
+  </button>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="إضافة مدرسين - تسجيل بيانات المدرسين الجدد">
+  <title>إضافة مدرسين - مولد الجدول الدراسي</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- Preload critical resources -->
+  <link rel="preload" href="js/shared.js" as="script">
+  <link rel="preload" href="js/add-teachers.js" as="script">
+</head>
+<body>
+  <div class="loading-overlay hidden" id="globalLoader">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جار التحميل...</div>
+  </div>
+
+  <nav class="main-nav animate__animated animate__fadeIn" aria-label="القائمة الرئيسية">
+    <ul>
+      <li><a href="index.html">الرئيسية</a></li>
+      <li><a href="settings.html">إعدادات الكلية</a></li>
+      <li><a href="departments.html">إدارة الأقسام</a></li>
+      <li><a href="add-teachers.html" class="active" aria-current="page">إضافة مدرسين</a></li>
+      <li><a href="students.html">إدارة الطلاب</a></li>
+      <li><a href="courses.html">إدارة المواد</a></li>
+      <li><a href="rooms.html">إدارة الأماكن</a></li>
+      <li><a href="teachers.html">إدارة المدرسين</a></li>
+      <li><a href="generate.html">توليد الجدول</a></li>
+      <li><a href="schedule.html">عرض الجدول</a></li>
+    </ul>
+  </nav>
+
+  <main class="container animate__animated animate__fadeIn">
+    <header>
+      <h1 class="animate__animated animate__bounceIn">إدارة المدرسين</h1>
+      <p class="subtitle">إضافة وتعديل بيانات المدرسين</p>
+    </header>
+
+    <section class="section animate-slide" aria-labelledby="add-teacher-heading">
+      <h2 id="add-teacher-heading">بيانات المدرس</h2>
+      <form id="teacherForm" class="form-grid">
+        <input type="hidden" id="teacherId">
+        <!-- Personal Information -->
+        <div class="input-group full-width">
+          <label for="teacherName">اسم المدرس:</label>
+          <input type="text" id="teacherName" placeholder="الاسم الكامل للمدرس" required
+                 aria-describedby="teacherNameHelp">
+          <p id="teacherNameHelp" class="input-hint">يجب أن يكون الاسم كاملاً كما يظهر في السجلات الرسمية</p>
+        </div>
+        
+        <!-- Additional Information -->
+        <div class="input-group full-width">
+          <label for="teacherNotes">ملاحظات:</label>
+          <textarea id="teacherNotes" placeholder="أي ملاحظات إضافية عن المدرس" 
+                    aria-describedby="teacherNotesHelp"></textarea>
+          <p id="teacherNotesHelp" class="input-hint">مثل تخصص دقيق أو أي قيود إضافية</p>
+        </div>
+      
+        <div class="form-actions">
+          <button type="submit" id="saveTeacherBtn" class="btn-primary">
+            <span class="icon">💾</span>
+            <span class="text">حفظ</span>
+          </button>
+          <button type="button" id="clearFormBtn" class="btn-accent">
+            <span class="icon">🗑️</span>
+            <span class="text">مسح النموذج</span>
+          </button>
+          <button type="button" id="cancelEditBtn" class="btn-secondary hidden">
+            <span class="icon">✖️</span>
+            <span class="text">إلغاء التعديل</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="section animate-slide" aria-labelledby="teachers-list-heading">
+      <h2 id="teachers-list-heading">قائمة المدرسين</h2>
+      <div class="table-responsive">
+        <table id="teachersTable" class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>اسم المدرس</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="main-footer">
+    <p>نظام توليد الجداول الدراسية &copy; <span id="currentYear"></span></p>
+  </footer>
+
+  <!-- Load shared.js first as it's required by add-teachers.js -->
+  <script src="js/shared.js" defer></script>
+  <script src="js/add-teachers.js" defer></script>
+
+  <button class="theme-toggle" id="themeToggle" aria-label="تبديل الوضع الليلي">
+    <i>🌙</i>
+  </button>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set current year in footer
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+    });
+  </script>
+</body>
+</html>
