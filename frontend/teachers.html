@@ -12,6 +12,209 @@
   <!-- Preload critical resources -->
   <link rel="preload" href="js/shared.js" as="script">
   <link rel="preload" href="js/teachers.js" as="script">
+  <style>
+    /* Additional styles for the teachers page */
+    .availability-grid table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .availability-grid th, 
+    .availability-grid td {
+      padding: 8px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+    
+    .availability-grid th {
+      background-color: var(--light-bg);
+      font-weight: 500;
+    }
+    
+    .availability-checkbox {
+      display: none;
+    }
+    
+    .availability-label {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    .availability-checkbox:checked + .availability-label {
+      background-color: rgba(46, 204, 113, 0.3);
+    }
+    
+    .select-day-btn, .deselect-day-btn {
+      padding: 4px 8px;
+      margin: 2px;
+    }
+    
+    .table-responsive {
+      overflow-x: auto;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .data-table th, 
+    .data-table td {
+      padding: 12px 8px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .data-table th {
+      background-color: var(--light-bg);
+      font-weight: 500;
+    }
+    
+    .data-table tr:nth-child(even) {
+      background-color: var(--table-row-bg);
+    }
+    
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .pagination-btn {
+      padding: 6px 12px;
+      min-width: 40px;
+    }
+    
+    .table-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    
+    .full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .form-actions {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+    }
+    
+    .availability-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .subheading {
+      margin-top: 25px;
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+    
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    
+    .stat-card h3 {
+      margin: 10px 0;
+      font-size: 1.1rem;
+    }
+    
+    .stat-card p {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--primary-color);
+    }
+    
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .section-actions {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .search-container {
+      position: relative;
+    }
+    
+    .search-container input {
+      padding-right: 35px;
+    }
+    
+    .search-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    
+    .filter-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .section-actions {
+        width: 100%;
+        flex-direction: column;
+      }
+      
+      .filter-group {
+        width: 100%;
+      }
+      
+      .filter-group select {
+        flex: 1;
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="loading-overlay hidden" id="globalLoader">
@@ -47,10 +250,10 @@
         <div class="input-group">
           <label for="teacherName">اسم المدرس:</label>
           <select id="teacherName" required>
-          <option value="">اختر اسم المدرس...</option>
-          ${SharedData.basicTeachers.map(t => `
-              <option value="${t.id}">${t.name}</option>
-          `).join('')}
+            <option value="">اختر اسم المدرس...</option>
+            ${SharedData.basicTeachers.map(t => `
+                <option value="${t.id}">${t.name}</option>
+            `).join('')}
           </select>
           <p id="teacherNameHelp" class="input-hint">اختر اسم المدرس من القائمة</p>
         </div>
@@ -74,6 +277,25 @@
             <option value="visiting">أستاذ زائر</option>
           </select>
           <p id="teacherTypeHelp" class="input-hint">يؤثر على أولوية الجدولة</p>
+        </div>
+        
+        <!-- Student Year and Group -->
+        <div class="input-group">
+          <label for="teacherYear">السنة الدراسية:</label>
+          <select id="teacherYear" aria-describedby="teacherYearHelp">
+            <option value="">اختر السنة...</option>
+            <!-- Will be populated by JavaScript -->
+          </select>
+          <p id="teacherYearHelp" class="input-hint">السنة الدراسية التي يدرس لها المدرس</p>
+        </div>
+        
+        <div class="input-group">
+          <label for="teacherGroup">الفرقة:</label>
+          <select id="teacherGroup" aria-describedby="teacherGroupHelp">
+            <option value="">اختر الفرقة...</option>
+            <!-- Will be populated by JavaScript when year is selected -->
+          </select>
+          <p id="teacherGroupHelp" class="input-hint">الفرقة التي يدرس لها المدرس</p>
         </div>
         
         <!-- Course Information -->
@@ -217,6 +439,7 @@
                 <th scope="col" width="15%">القسم</th>
                 <th scope="col" width="10%">النوع</th>
                 <th scope="col" width="20%">المادة</th>
+                <th scope="col" width="15%">السنة/الفرقة</th>
                 <th scope="col" width="10%">الحصص</th>
                 <th scope="col" width="10%">المدة</th>
                 <th scope="col" width="10%">معمل</th>
@@ -226,9 +449,7 @@
             <tbody>
               <!-- Will be populated by JavaScript -->
               <tr class="empty-row">
-                <td colspan="8">
-
-                </td>
+                <td colspan="9">لا يوجد مدرسين مسجلين بعد</td>
               </tr>
             </tbody>
           </table>

@@ -109,7 +109,6 @@ class ScheduleManager {
             analysisContent.classList.toggle('hidden');
         });
 
-        // New delete schedule button
         document.getElementById('deleteScheduleBtn')?.addEventListener('click', () => {
             this.deleteSchedule();
         });
@@ -165,86 +164,104 @@ class ScheduleManager {
         }
     }
 
-    // In schedule.js - Update the renderSchedule function
-renderSchedule() {
-    if (!SharedData.schedule || SharedData.schedule.length === 0) return;
-    
-    const filteredSchedule = this.filterSchedule();
-    const days = SharedData.getDays();
-    const { startHour, endHour } = SharedData.getHoursRange();
-    
-    const timeSlots = [];
-    for (let hour = startHour; hour < endHour; hour++) {
-        timeSlots.push(hour);
-    }
-    
-    let tableHTML = `
-        <table class="schedule-table">
-            <thead>
-                <tr>
-                    <th class="time-column">الوقت</th>
-                    ${days.map(day => `<th>${day}</th>`).join('')}
-                </tr>
-            </thead>
-            <tbody>
-    `;
-    
-    timeSlots.forEach(hour => {
-        tableHTML += `
-            <tr>
-                <td class="time-column">${SharedData.formatHourToAMPM(hour)}</td>
+    renderSchedule() {
+        if (!SharedData.schedule || SharedData.schedule.length === 0) return;
+        
+        const filteredSchedule = this.filterSchedule();
+        const days = SharedData.getDays();
+        const { startHour, endHour } = SharedData.getHoursRange();
+        
+        // Track which cells should be hidden due to multi-hour lessons
+        const hiddenCells = new Set();
+        
+        // Create table header
+        let tableHTML = `
+            <div class="schedule-table-container">
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th class="time-column">الوقت</th>
+                            ${days.map(day => `<th>${day}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
         
-        days.forEach(day => {
-            const lessons = filteredSchedule.filter(lesson => 
-                lesson.day === day && lesson.hour === hour
-            );
+        // Create time slots
+        for (let hour = startHour; hour < endHour; hour++) {
+            tableHTML += `
+                <tr>
+                    <td class="time-column">${SharedData.formatHourToAMPM(hour)}</td>
+            `;
             
-            if (lessons.length === 0) {
-                tableHTML += `<td class="time-slot empty"></td>`;
-            } else {
-                const lesson = lessons[0];
-                const teacher = SharedData.getTeacherById(lesson.teacherId);
-                const room = SharedData.getRoomById(lesson.roomId);
-                const dept = teacher ? SharedData.getDepartmentById(teacher.department) : null;
-                const course = SharedData.getCourseById(lesson.courseId) || { name: lesson.subject };
+            // Create cells for each day
+            for (const day of days) {
+                const cellKey = `${day}-${hour}`;
                 
-                let cellStyle = '';
-                if (this.currentView === 'color' && dept) {
-                    cellStyle = `style="background-color: ${dept.color}20; border-left: 3px solid ${dept.color};"`;
+                // Skip if this cell is part of a multi-hour lesson
+                if (hiddenCells.has(cellKey)) {
+                    continue;
                 }
                 
-                tableHTML += `
-                    <td class="time-slot" data-lesson-id="${lesson.id}" ${cellStyle}>
-                        <div class="time-slot-content">
-                            <div class="lesson-actions">
-                                <button class="delete-lesson-btn" title="حذف هذه الحصة">🗑️</button>
+                const lessons = filteredSchedule.filter(lesson => 
+                    lesson.day === day && lesson.hour === hour
+                );
+                
+                if (lessons.length === 0) {
+                    tableHTML += `<td class="time-slot empty" data-day="${day}" data-hour="${hour}"></td>`;
+                } else {
+                    const lesson = lessons[0];
+                    const teacher = SharedData.getTeacherById(lesson.teacherId);
+                    const room = SharedData.getRoomById(lesson.roomId);
+                    const dept = teacher ? SharedData.getDepartmentById(teacher.department) : null;
+                    const course = SharedData.getCourseById(lesson.courseId) || { name: lesson.subject };
+                    
+                    // Determine cell styling
+                    let cellStyle = '';
+                    let cellClass = 'time-slot';
+                    if (this.currentView === 'color' && dept) {
+                        cellStyle = `style="background-color: ${dept.color}20; border-left: 3px solid ${dept.color};"`;
+                    }
+                    if (lesson.duration > 1) {
+                        cellClass += ' multi-hour';
+                        
+                        // Mark subsequent hours as hidden
+                        for (let h = 1; h < lesson.duration; h++) {
+                            const nextHour = hour + h;
+                            if (nextHour < endHour) {
+                                hiddenCells.add(`${day}-${nextHour}`);
+                            }
+                        }
+                    }
+                    
+                    tableHTML += `
+                        <td class="${cellClass}" data-lesson-id="${lesson.id}" ${cellStyle} 
+                            rowspan="${lesson.duration}" data-day="${day}" data-hour="${hour}">
+                            <div class="time-slot-content">
+                                <div class="lesson-actions">
+                                    <button class="delete-lesson-btn" title="حذف هذه الحصة">🗑️</button>
+                                </div>
+                                ${lesson.duration > 1 ? `<span class="duration-badge">${lesson.duration} ساعات</span>` : ''}
+                                <div class="subject">${course.name || 'غير معروف'}</div>
+                                <div class="teacher">${teacher?.name || 'غير معروف'}</div>
+                                <div class="room">${room?.name || 'غير معروف'}</div>
+                                <div class="department">${dept?.name || 'عام'}</div>
+                                ${lesson.requiresLab ? '<div class="lab-indicator">🔬 معمل</div>' : ''}
                             </div>
-                            ${lesson.duration > 1 ? `<span class="duration-badge">${lesson.duration} ساعات</span>` : ''}
-                            <div class="subject">${course.name || 'غير معروف'}</div>
-                            <div class="teacher">${teacher?.name || 'غير معروف'}</div>
-                            <div class="room">${room?.name || 'غير معروف'}</div>
-                            <div class="department">${dept?.name || 'عام'}</div>
-                            ${lesson.requiresLab ? '<div class="lab-indicator">🔬 معمل</div>' : ''}
-                            <div class="additional-info">
-                                <span class="info-item">${lesson.group || 'الكل'}</span>
-                                <span class="info-item">${lesson.year || ''}</span>
-                            </div>
-                        </div>
-                    </td>
-                `;
+                        </td>
+                    `;
+                }
             }
-        });
+            
+            tableHTML += `</tr>`;
+        }
         
-        tableHTML += `</tr>`;
-    });
-    
-    tableHTML += `</tbody></table>`;
-    
-    document.getElementById('finalSchedule').innerHTML = tableHTML;
-    this.updateLegend();
-    this.setupLessonDeleteButtons();
-}
+        tableHTML += `</tbody></table></div>`;
+        
+        document.getElementById('finalSchedule').innerHTML = tableHTML;
+        this.updateLegend();
+        this.setupLessonDeleteButtons();
+    }
 
     setupLessonDeleteButtons() {
         document.querySelectorAll('.delete-lesson-btn').forEach(btn => {
@@ -321,14 +338,21 @@ renderSchedule() {
     }
 
     updateLegend() {
+        const legendContainer = document.getElementById('scheduleLegend');
+        if (!legendContainer) return;
+        
         if (this.currentView !== 'color') {
-            document.getElementById('scheduleLegend').classList.add('hidden');
+            legendContainer.classList.add('hidden');
             return;
         }
         
-        document.getElementById('scheduleLegend').classList.remove('hidden');
+        legendContainer.classList.remove('hidden');
         
-        let legendHTML = '';
+        let legendHTML = `
+            <h3>مفتاح الألوان:</h3>
+            <div class="legend-items-container">
+        `;
+        
         SharedData.departments.forEach(dept => {
             legendHTML += `
                 <div class="legend-item">
@@ -338,6 +362,7 @@ renderSchedule() {
             `;
         });
         
+        legendHTML += `</div>`;
         document.getElementById('legendItems').innerHTML = legendHTML;
     }
 
@@ -627,6 +652,4 @@ renderSchedule() {
         
         return toast;
     }
-    
 }
-

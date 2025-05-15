@@ -1,5 +1,4 @@
-// teachers.js - Final Complete Version
-// Handles extended teacher information and availability
+// teachers.js - Complete Version with Student Years and Groups Integration
 
 document.addEventListener('DOMContentLoaded', () => {
     window.teachersManager = new TeachersManager();
@@ -23,7 +22,6 @@ class TeachersManager {
             return;
         }
 
-        // Initialize basicTeachers if not exists
         if (!SharedData.basicTeachers) {
             SharedData.basicTeachers = [];
         }
@@ -32,18 +30,17 @@ class TeachersManager {
         this.populateDepartmentDropdowns();
         this.populateTeacherNamesDropdown();
         this.populateCoursesDropdown();
+        this.populateStudentYearsDropdown();
         this.initAvailabilityGrid();
         this.setupEventListeners();
         this.loadAvailabilityTemplates();
         this.updateTeachersTable();
         this.updateStats();
 
-        // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
     }
 
     loadData() {
-        // Combine basic teacher info with extended data
         this.filteredTeachers = SharedData.teachers.map(teacher => {
             const basicInfo = SharedData.basicTeachers.find(t => t.id === teacher.id) || {};
             return {
@@ -104,6 +101,48 @@ class TeachersManager {
             option.value = course.id;
             option.textContent = `${course.name} (${course.code}) - ${course.credits} ساعات`;
             courseSelect.appendChild(option);
+        });
+    }
+
+    populateStudentYearsDropdown() {
+        const yearSelect = document.getElementById('teacherYear');
+        const groupSelect = document.getElementById('teacherGroup');
+        
+        if (!yearSelect || !groupSelect) return;
+
+        yearSelect.innerHTML = '<option value="">اختر السنة...</option>';
+        groupSelect.innerHTML = '<option value="">اختر الفرقة...</option>';
+
+        (SharedData.studentYears || []).forEach(year => {
+            const dept = SharedData.getDepartmentById(year.deptId);
+            const deptName = dept ? dept.name : 'غير محدد';
+            const option = document.createElement('option');
+            option.value = year.id;
+            option.textContent = `${year.name} (${deptName})`;
+            yearSelect.appendChild(option);
+        });
+
+        yearSelect.addEventListener('change', (e) => {
+            this.updateGroupsDropdown(e.target.value);
+        });
+    }
+
+    updateGroupsDropdown(yearId) {
+        const groupSelect = document.getElementById('teacherGroup');
+        if (!groupSelect) return;
+
+        groupSelect.innerHTML = '<option value="">اختر الفرقة...</option>';
+
+        if (!yearId) return;
+
+        const year = SharedData.getStudentYearById(yearId);
+        if (!year || !year.groups) return;
+
+        year.groups.forEach(group => {
+            const option = document.createElement('option');
+            option.value = group.id;
+            option.textContent = `${group.name}${group.code ? ` (${group.code})` : ''}`;
+            groupSelect.appendChild(option);
         });
     }
 
@@ -194,6 +233,8 @@ class TeachersManager {
         const deptId = document.getElementById('teacherDept').value;
         const type = document.getElementById('teacherType').value;
         const courseId = document.getElementById('teacherCourse').value;
+        const yearId = document.getElementById('teacherYear').value;
+        const groupId = document.getElementById('teacherGroup').value;
         const lessons = parseInt(document.getElementById('requiredLessons').value);
         const duration = parseInt(document.getElementById('lessonDuration').value);
         const requiresLab = document.getElementById('requiresLab').checked;
@@ -233,10 +274,12 @@ class TeachersManager {
         
         if (this.isEditing && this.currentTeacher) {
             Object.assign(this.currentTeacher, {
-                name: basicTeacher.name, // Always use name from basic teachers
+                name: basicTeacher.name,
                 department: deptId,
                 type,
                 courseId,
+                yearId,
+                groupId,
                 lessons,
                 duration,
                 requiresLab: requiresLab || course.needsLab,
@@ -249,10 +292,12 @@ class TeachersManager {
         } else {
             const newTeacher = {
                 id: teacherId,
-                name: basicTeacher.name, // Always use name from basic teachers
+                name: basicTeacher.name,
                 department: deptId,
                 type,
                 courseId,
+                yearId,
+                groupId,
                 lessons,
                 duration,
                 requiresLab: requiresLab || course.needsLab,
@@ -279,6 +324,8 @@ class TeachersManager {
         document.getElementById('teacherType').value = 'professor';
         document.getElementById('lessonDuration').value = '1';
         document.getElementById('requiresLab').checked = false;
+        document.getElementById('teacherYear').value = '';
+        document.getElementById('teacherGroup').value = '';
         this.selectAllAvailability(false);
         this.currentTeacher = null;
         this.isEditing = false;
@@ -341,6 +388,13 @@ class TeachersManager {
             const course = SharedData.getCourseById(teacher.courseId);
             const courseName = course ? `${course.name} (${course.code})` : 'غير محدد';
 
+            const year = teacher.yearId ? SharedData.getStudentYearById(teacher.yearId) : null;
+            const yearName = year ? year.name : 'غير محدد';
+            
+            const group = year && teacher.groupId ? 
+                year.groups.find(g => g.id === teacher.groupId) : null;
+            const groupName = group ? group.name : 'غير محدد';
+
             const typeNames = {
                 professor: 'أستاذ دكتور',
                 assistant: 'معيد',
@@ -354,6 +408,7 @@ class TeachersManager {
                     <td>${deptName}</td>
                     <td>${typeNames[teacher.type] || teacher.type}</td>
                     <td>${courseName}</td>
+                    <td>${yearName} / ${groupName}</td>
                     <td>${teacher.lessons}</td>
                     <td>${teacher.duration} ساعة</td>
                     <td>${teacher.requiresLab ? 'نعم' : 'لا'}</td>
@@ -397,6 +452,16 @@ class TeachersManager {
         document.getElementById('requiresLab').checked = teacher.requiresLab;
         document.getElementById('teacherNotes').value = teacher.notes || '';
         
+        if (teacher.yearId) {
+            document.getElementById('teacherYear').value = teacher.yearId;
+            this.updateGroupsDropdown(teacher.yearId);
+            if (teacher.groupId) {
+                setTimeout(() => {
+                    document.getElementById('teacherGroup').value = teacher.groupId;
+                }, 100);
+            }
+        }
+        
         this.populateCoursesDropdown();
         document.getElementById('teacherCourse').value = teacher.courseId || '';
         
@@ -412,35 +477,26 @@ class TeachersManager {
             return;
         }
         
-        // Check if teacher is used in schedule
         if (SharedData.schedule?.some(lesson => lesson.teacherId === teacherId)) {
             SharedData.showToast('لا يمكن حذف المدرس لأنه مستخدم في الجدول الدراسي', 'error');
             return;
         }
         
-        // Store initial count for comparison
-        const initialCount = SharedData.teachers.length;
-        
-        // Find the index of the teacher to delete
         const teacherIndex = SharedData.teachers.findIndex(t => String(t.id) === String(teacherId));
         
-        // Check if teacher was found
         if (teacherIndex === -1) {
             SharedData.showToast('لم يتم العثور على المدرس', 'error');
             return;
         }
         
-        // Remove the teacher from the array
         SharedData.teachers.splice(teacherIndex, 1);
         
-        // Save changes and update UI
         SharedData.saveToLocalStorage();
         this.loadData();
         this.populateTeacherNamesDropdown();
         this.updateTeachersTable();
         this.updateStats();
         
-        // Reset form if editing the deleted teacher
         if (this.isEditing && this.currentTeacher?.id === teacherId) {
             this.resetForm();
         }
@@ -744,6 +800,8 @@ class TeachersManager {
                 department: SharedData.departments[0].id,
                 type: "professor",
                 courseId: SharedData.courses.find(c => c.deptId === SharedData.departments[0].id)?.id,
+                yearId: SharedData.studentYears[0]?.id,
+                groupId: SharedData.studentYears[0]?.groups[0]?.id,
                 lessons: 3,
                 duration: 1,
                 requiresLab: false,
@@ -754,6 +812,8 @@ class TeachersManager {
                 department: SharedData.departments[0].id,
                 type: "assistant",
                 courseId: SharedData.courses.find(c => c.needsLab)?.id,
+                yearId: SharedData.studentYears[1]?.id,
+                groupId: SharedData.studentYears[1]?.groups[0]?.id,
                 lessons: 4,
                 duration: 2,
                 requiresLab: true,
@@ -808,7 +868,6 @@ class TeachersManager {
             return;
         }
 
-        // Check if any teachers are used in schedule
         const teachersInSchedule = SharedData.teachers.filter(teacher => 
             SharedData.schedule?.some(lesson => lesson.teacherId === teacher.id)
         );
@@ -821,7 +880,6 @@ class TeachersManager {
             return;
         }
 
-        // Delete all teachers not in schedule
         SharedData.teachers = [];
         
         SharedData.saveToLocalStorage();

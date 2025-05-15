@@ -43,7 +43,7 @@
   --success-dark: #27ae60;
   --warning-color: #f39c12;
   --warning-dark: #e67e22;
-  --dark-color: #ecf0f1;
+  --dark-color: #0d1a1e;
   --light-color: #2c3e50;
   --gray-color: #7f8c8d;
   --text-color: #f8f9fa;
@@ -664,7 +664,7 @@ tr:hover {
 
 .time-column {
   background: var(--dark-color);
-  color: white;
+  color: rgb(27, 9, 39);
   padding: 12px;
   text-align: center;
   font-weight: bold;
@@ -2717,4 +2717,340 @@ select option[value="general"] {
     .department {
         font-size: 0.75em;
     }
+}
+.generation-warnings {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 1rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+}
+
+.generation-warnings h4 {
+    margin-top: 0;
+    color: #856404;
+}
+
+.generation-warnings ul {
+    margin-bottom: 0;
+}/* Schedule Table Styles */
+.schedule-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.schedule-table th {
+  background-color: #8e44ad;
+  color: white;
+  padding: 0.75rem;
+  text-align: center;
+  position: sticky;
+  top: 0;
+}
+
+.schedule-table td {
+  border: 1px solid #e0e0e0;
+  padding: 0.5rem;
+  vertical-align: top;
+  min-width: 120px;
+}
+
+.time-column {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.time-slot {
+  min-height: 80px;
+  transition: all 0.2s ease;
+}
+
+.time-slot.empty {
+  background-color: #f9f9f9;
+}
+
+.time-slot:hover {
+  background-color: #f0f0f0 !important;
+}
+
+.time-slot.multi-hour {
+  background-color: #f0f7ff;
+}
+
+.time-slot-content {
+  position: relative;
+  height: 100%;
+}
+
+.lesson-actions {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+}
+
+.delete-lesson-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.delete-lesson-btn:hover {
+  opacity: 1;
+  color: #e74c3c;
+}
+
+.duration-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background-color: #3498db;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+}
+
+.subject {
+  font-weight: bold;
+  margin-top: 1.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.teacher, .room, .department {
+  font-size: 0.8rem;
+  margin: 0.1rem 0;
+}
+
+.lab-indicator {
+  font-size: 0.7rem;
+  color: #e74c3c;
+  margin-top: 0.3rem;
+}
+
+/* For color view */
+.schedule-table.color-view .time-slot {
+  border-left-width: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .schedule-table th, 
+  .schedule-table td {
+    padding: 0.3rem;
+    font-size: 0.8rem;
+  }
+  
+  .time-slot {
+    min-height: 60px;
+  }
+}.loading, .error-state, .empty-schedule {
+    padding: 2rem;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.loading:before {
+    content: "⏳";
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.error-state {
+    color: #e74c3c;
+}
+
+.error-state:before {
+    content: "⚠️";
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.empty-schedule {
+    color: #3498db;
+}
+
+.empty-schedule:before {
+    content: "📅";
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+/* Add this to your existing styles */
+.availability-grid {
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+.availability-grid table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border-color);
+}
+
+.availability-grid th, 
+.availability-grid td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.availability-grid th {
+    background-color: var(--light-bg);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.availability-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.availability-label {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 30px;
+    min-height: 30px;
+}
+
+.availability-checkbox:checked + .availability-label {
+    background-color: rgba(46, 204, 113, 0.3);
+}
+
+.availability-checkbox:focus + .availability-label {
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.select-day-btn, .deselect-day-btn {
+    padding: 4px 8px;
+    margin: 2px;
+    font-size: 0.8rem;
+}
+/* Timetable Styles */
+.timetable-container {
+    margin-top: 2rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.timetable-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.timetable-tab {
+    padding: 0.5rem 1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.timetable-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.timetable-tab:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.timetable-pane {
+    display: none;
+}
+
+.timetable-pane.active {
+    display: block;
+}
+
+.fet-style-timetable {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.fet-style-timetable table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.fet-style-timetable th, 
+.fet-style-timetable td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.fet-style-timetable th {
+    background-color: var(--table-header-bg);
+    font-weight: bold;
+}
+
+.fet-style-timetable .time-cell {
+    background-color: var(--table-header-bg);
+    font-weight: bold;
+    width: 80px;
+}
+
+.timetable-lesson {
+    background-color: var(--lesson-bg);
+    border-radius: 4px;
+    padding: 0.5rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.lesson-subject {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.lesson-teacher {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.lesson-room {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.lesson-duration {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    font-style: italic;
 }
