@@ -21,12 +21,11 @@ function setupUI() {
     populateDepartmentFilter();
     updateReadinessChecks();
     
-    // Create timetable container if it doesn't exist
     const container = document.querySelector('.container');
-    if (!document.getElementById('timetableContainer')) {
+    if (!document.getElementById('timetableViews')) {
         const timetableDiv = document.createElement('div');
-        timetableDiv.id = 'timetableContainer';
-        timetableDiv.className = 'timetable-container hidden';
+        timetableDiv.id = 'timetableViews';
+        timetableDiv.className = 'timetable-views hidden';
         container.appendChild(timetableDiv);
     }
 }
@@ -34,7 +33,7 @@ function setupUI() {
 function setupEventListeners() {
     document.getElementById('generateBtn')?.addEventListener('click', startGeneration);
     document.getElementById('stopBtn')?.addEventListener('click', stopGeneration);
-    document.getElementById('viewScheduleBtn')?.addEventListener('click', renderTimetable);
+    document.getElementById('viewScheduleBtn')?.addEventListener('click', renderTimetables);
     document.getElementById('exportBtn')?.addEventListener('click', exportSchedule);
     document.getElementById('tryAgainBtn')?.addEventListener('click', resetUI);
     
@@ -66,21 +65,18 @@ function updateReadinessChecks() {
         ? SharedData.rooms.filter(r => !r.department || r.department === deptId)
         : SharedData.rooms;
 
-    // Teachers check
     updateCheckStatus('teachers', 
         teachers.length > 0,
         `تم العثور على ${teachers.length} مدرس`,
         'لا يوجد مدرسين مسجلين'
     );
 
-    // Rooms check
     updateCheckStatus('rooms',
         rooms.length > 0,
         `تم العثور على ${rooms.length} مكان`,
         'لا يوجد أماكن مسجلة'
     );
 
-    // Availability check
     const availableTeachers = teachers.filter(t => 
         t.availability && Object.values(t.availability).some(h => h.length > 0)
     ).length;
@@ -92,7 +88,6 @@ function updateReadinessChecks() {
         availableTeachers !== teachers.length
     );
 
-    // Labs check
     const needsLab = teachers.filter(t => t.requiresLab).length;
     const labRooms = rooms.filter(r => r.type && r.type !== 'room').length;
     updateCheckStatus('labs',
@@ -196,7 +191,7 @@ function validateGenerationInputs() {
 function showProgressUI() {
     document.getElementById('progressContainer').classList.remove('hidden');
     document.getElementById('resultsContainer').classList.add('hidden');
-    document.getElementById('timetableContainer').classList.add('hidden');
+    document.getElementById('timetableViews').classList.add('hidden');
     
     document.getElementById('generateBtn').classList.add('hidden');
     document.getElementById('stopBtn').classList.remove('hidden');
@@ -221,13 +216,11 @@ function showResultsUI(results) {
     document.getElementById('generateBtn').classList.remove('hidden');
     document.getElementById('stopBtn').classList.add('hidden');
     
-    // Update results
     document.getElementById('finalScore').textContent = `${results.score}%`;
     document.getElementById('finalScheduled').textContent = results.scheduled;
     document.getElementById('finalUnscheduled').textContent = results.unscheduled;
     document.getElementById('finalTime').textContent = `${results.time} ثانية`;
     
-    // Color code the score
     const scoreElement = document.getElementById('finalScore');
     scoreElement.className = 'score-badge ' + (
         results.score > 90 ? 'excellent' :
@@ -235,212 +228,320 @@ function showResultsUI(results) {
         results.score > 50 ? 'fair' : 'poor'
     );
     
-    // Render the timetable
-    renderTimetable();
+    renderTimetables();
 }
 
 function resetUI() {
     document.getElementById('progressContainer').classList.add('hidden');
     document.getElementById('resultsContainer').classList.add('hidden');
-    document.getElementById('timetableContainer').classList.add('hidden');
+    document.getElementById('timetableViews').classList.add('hidden');
     
     document.getElementById('generateBtn').classList.remove('hidden');
     document.getElementById('stopBtn').classList.add('hidden');
 }
 
-function renderTimetable() {
+function renderTimetables() {
     if (!SharedData.schedule || SharedData.schedule.length === 0) {
         SharedData.showToast('لا يوجد جدول لعرضه', 'warning');
         return;
     }
 
-    const timetableContainer = document.getElementById('timetableContainer');
+    const timetableContainer = document.getElementById('timetableViews');
     if (!timetableContainer) return;
 
-    // Clear previous timetable
     timetableContainer.innerHTML = '';
     timetableContainer.classList.remove('hidden');
 
-    // Create tabs for each department
-    const departments = getDepartmentsFromSchedule();
-    
-    if (departments.length === 0) {
-        SharedData.showToast('لا يوجد بيانات لعرضها', 'info');
-        return;
-    }
+    const tabs = document.createElement('div');
+    tabs.className = 'timetable-tabs';
+    tabs.innerHTML = `
+        <button class="timetable-tab active" data-view="daily">عرض يومي</button>
+        <button class="timetable-tab" data-view="weekly">عرض أسبوعي</button>
+        <button class="timetable-tab" data-view="teachers">حسب المدرسين</button>
+        <button class="timetable-tab" data-view="rooms">حسب القاعات</button>
+    `;
+    timetableContainer.appendChild(tabs);
 
-    // Create tab navigation
-    const tabNav = document.createElement('div');
-    tabNav.className = 'timetable-tabs';
-    
-    departments.forEach((dept, index) => {
-        const tab = document.createElement('button');
-        tab.className = `timetable-tab ${index === 0 ? 'active' : ''}`;
-        tab.textContent = dept.name;
-        tab.dataset.deptId = dept.id;
-        tab.addEventListener('click', () => switchTimetableTab(dept.id));
-        tabNav.appendChild(tab);
-    });
-    
-    timetableContainer.appendChild(tabNav);
-
-    // Create tab content
     const tabContent = document.createElement('div');
     tabContent.className = 'timetable-tab-content';
     
-    departments.forEach((dept, index) => {
-        const tabPane = document.createElement('div');
-        tabPane.className = `timetable-pane ${index === 0 ? 'active' : ''}`;
-        tabPane.id = `timetable-${dept.id}`;
-        
-        // Create timetable for this department
-        const timetable = createDepartmentTimetable(dept.id);
-        tabPane.appendChild(timetable);
-        
-        tabContent.appendChild(tabPane);
-    });
-    
+    const dailyView = document.createElement('div');
+    dailyView.className = 'timetable-view active';
+    dailyView.id = 'daily-view';
+    dailyView.appendChild(createDailyTimetable());
+    tabContent.appendChild(dailyView);
+
+    const weeklyView = document.createElement('div');
+    weeklyView.className = 'timetable-view';
+    weeklyView.id = 'weekly-view';
+    weeklyView.appendChild(createWeeklyTimetable());
+    tabContent.appendChild(weeklyView);
+
+    const teachersView = document.createElement('div');
+    teachersView.className = 'timetable-view';
+    teachersView.id = 'teachers-view';
+    teachersView.appendChild(createTeachersTimetable());
+    tabContent.appendChild(teachersView);
+
+    const roomsView = document.createElement('div');
+    roomsView.className = 'timetable-view';
+    roomsView.id = 'rooms-view';
+    roomsView.appendChild(createRoomsTimetable());
+    tabContent.appendChild(roomsView);
+
     timetableContainer.appendChild(tabContent);
-}
 
-function switchTimetableTab(deptId) {
-    // Update active tab
-    document.querySelectorAll('.timetable-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.deptId === deptId);
+    tabs.querySelectorAll('.timetable-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.querySelectorAll('.timetable-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            tabContent.querySelectorAll('.timetable-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            document.getElementById(`${tab.dataset.view}-view`).classList.add('active');
+        });
     });
-    
-    // Update active pane
-    document.querySelectorAll('.timetable-pane').forEach(pane => {
-        pane.classList.toggle('active', pane.id === `timetable-${deptId}`);
-    });
 }
 
-function getDepartmentsFromSchedule() {
-    const deptIds = [...new Set(SharedData.schedule.map(lesson => lesson.department))];
-    return deptIds.map(id => SharedData.getDepartmentById(id)).filter(Boolean);
-}
-
-function createDepartmentTimetable(deptId) {
-    const timetable = document.createElement('div');
-    timetable.className = 'fet-style-timetable';
-    
-    // Filter schedule for this department
-    const deptSchedule = SharedData.schedule.filter(lesson => lesson.department === deptId);
-    if (deptSchedule.length === 0) return timetable;
-    
+function createDailyTimetable() {
     const days = SharedData.getDays();
     const { startHour, endHour } = SharedData.getHoursRange();
+    const timetable = document.createElement('div');
+    timetable.className = 'daily-timetable';
     
-    // Create table
-    const table = document.createElement('table');
-    
-    // Create header row
-    const headerRow = document.createElement('tr');
-    headerRow.appendChild(document.createElement('th')); // Empty corner cell
-    
-    // Add day headers
     days.forEach(day => {
-        const th = document.createElement('th');
-        th.textContent = day;
-        headerRow.appendChild(th);
+        const daySection = document.createElement('div');
+        daySection.className = 'day-section';
+        daySection.innerHTML = `<h3>${day}</h3>`;
+        
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>الوقت</th>
+                    <th>المادة</th>
+                    <th>المدرس</th>
+                    <th>القاعة</th>
+                    <th>المدة</th>
+                    <th>النوع</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        const dayLessons = SharedData.schedule.filter(l => l.day === day)
+            .sort((a, b) => a.hour - b.hour);
+            
+        dayLessons.forEach(lesson => {
+            const teacher = SharedData.getTeacherById(lesson.teacherId);
+            const room = SharedData.getRoomById(lesson.roomId);
+            const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+            const courseType = course?.type || '';
+            const typeName = courseType === 'required' ? 'إجبارية' : 
+                            courseType === 'general' ? 'عامة' : 'اختيارية';
+            
+            table.querySelector('tbody').innerHTML += `
+                <tr>
+                    <td>${SharedData.formatHourToAMPM(lesson.hour)}</td>
+                    <td>${course?.name || lesson.subject || 'غير معروف'}</td>
+                    <td>${teacher?.name || 'غير معروف'}</td>
+                    <td>${room?.name || 'غير معروف'}</td>
+                    <td>${lesson.duration} ساعة</td>
+                    <td>${typeName}</td>
+                </tr>
+            `;
+        });
+        
+        daySection.appendChild(table);
+        timetable.appendChild(daySection);
     });
     
-    table.appendChild(headerRow);
+    return timetable;
+}
+
+function createWeeklyTimetable() {
+    const days = SharedData.getDays();
+    const { startHour, endHour } = SharedData.getHoursRange();
+    const timetable = document.createElement('div');
+    timetable.className = 'weekly-timetable';
     
-    // Create time slots rows
+    const table = document.createElement('table');
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>الوقت</th>
+                ${days.map(day => `<th>${day}</th>`).join('')}
+            </tr>
+        </thead>
+        <tbody>
+    `;
+    
     for (let hour = startHour; hour < endHour; hour++) {
         const row = document.createElement('tr');
+        row.innerHTML = `<td>${SharedData.formatHourToAMPM(hour)}</td>`;
         
-        // Add time cell
-        const timeCell = document.createElement('td');
-        timeCell.className = 'time-cell';
-        timeCell.textContent = SharedData.formatHourToAMPM(hour);
-        row.appendChild(timeCell);
-        
-        // Add day cells
         days.forEach(day => {
-            const cell = document.createElement('td');
-            
-            // Find lessons for this day and hour
-            const lessons = deptSchedule.filter(lesson => 
-                lesson.day === day && 
-                lesson.hour <= hour && 
-                hour < lesson.hour + lesson.duration
+            const lessons = SharedData.schedule.filter(l => 
+                l.day === day && hour >= l.hour && hour < l.hour + l.duration
             );
             
             if (lessons.length > 0) {
-                const lesson = lessons[0]; // Only show first lesson if multiple (shouldn't happen)
-                const lessonDiv = createLessonDiv(lesson);
-                cell.appendChild(lessonDiv);
-                
-                // Add rowspan if this is a multi-hour lesson
-                if (lesson.hour === hour && lesson.duration > 1) {
-                    cell.rowSpan = lesson.duration;
-                } else if (lesson.hour !== hour) {
-                    // This cell is part of a multi-hour lesson, skip it
-                    return;
+                const lesson = lessons[0];
+                // Only create cell if this is the starting hour
+                if (hour === lesson.hour) {
+                    const cell = document.createElement('td');
+                    const teacher = SharedData.getTeacherById(lesson.teacherId);
+                    const room = SharedData.getRoomById(lesson.roomId);
+                    const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+                    const courseType = course?.type || '';
+                    const typeClass = courseType === 'required' ? 'required-course' : 
+                                    courseType === 'general' ? 'general-course' : 'elective-course';
+                    
+                    cell.innerHTML = `
+                        <div class="lesson-cell ${typeClass}">
+                            <div class="subject">${course?.name || lesson.subject || 'غير معروف'}</div>
+                            <div class="teacher">${teacher?.name || 'غير معروف'}</div>
+                            <div class="room">${room?.name || 'غير معروف'}</div>
+                            ${lesson.duration > 1 ? `<div class="duration">${lesson.duration} ساعات</div>` : ''}
+                        </div>
+                    `;
+                    
+                    if (lesson.duration > 1) {
+                        cell.rowSpan = lesson.duration;
+                        cell.classList.add('multi-hour-cell');
+                    }
+                    
+                    row.appendChild(cell);
                 }
+            } else {
+                // Empty cell
+                const cell = document.createElement('td');
+                row.appendChild(cell);
             }
-            
-            row.appendChild(cell);
         });
         
-        table.appendChild(row);
+        table.querySelector('tbody').appendChild(row);
     }
     
     timetable.appendChild(table);
     return timetable;
 }
 
-function createLessonDiv(lesson) {
-    const lessonDiv = document.createElement('div');
-    lessonDiv.className = 'timetable-lesson';
+function createTeachersTimetable() {
+    const teachers = [...new Set(SharedData.schedule.map(l => l.teacherId))]
+        .map(id => SharedData.getTeacherById(id))
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
     
-    const teacher = SharedData.getTeacherById(lesson.teacherId);
-    const room = SharedData.getRoomById(lesson.roomId);
-    const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+    const timetable = document.createElement('div');
+    timetable.className = 'teachers-timetable';
     
-    // Add subject - use course name if available, otherwise fall back to lesson.subject
-    const subjectName = course?.name || lesson.subject || 'مادة';
-    const subjectDiv = document.createElement('div');
-    subjectDiv.className = 'lesson-subject';
-    subjectDiv.textContent = subjectName;
+    teachers.forEach(teacher => {
+        const teacherSection = document.createElement('div');
+        teacherSection.className = 'teacher-section';
+        teacherSection.innerHTML = `<h3>${teacher.name}</h3>`;
+        
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>اليوم</th>
+                    <th>الوقت</th>
+                    <th>المادة</th>
+                    <th>القاعة</th>
+                    <th>المدة</th>
+                    <th>النوع</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        const teacherLessons = SharedData.schedule.filter(l => l.teacherId === teacher.id)
+            .sort((a, b) => a.day.localeCompare(b.day) || a.hour - b.hour);
+            
+        teacherLessons.forEach(lesson => {
+            const room = SharedData.getRoomById(lesson.roomId);
+            const course = SharedData.getCourseById(teacher.courseId);
+            const courseType = course?.type || '';
+            const typeName = courseType === 'required' ? 'إجبارية' : 
+                            courseType === 'general' ? 'عامة' : 'اختيارية';
+            
+            table.querySelector('tbody').innerHTML += `
+                <tr>
+                    <td>${lesson.day}</td>
+                    <td>${SharedData.formatHourToAMPM(lesson.hour)}</td>
+                    <td>${course?.name || lesson.subject || 'غير معروف'}</td>
+                    <td>${room?.name || 'غير معروف'}</td>
+                    <td>${lesson.duration} ساعة</td>
+                    <td>${typeName}</td>
+                </tr>
+            `;
+        });
+        
+        teacherSection.appendChild(table);
+        timetable.appendChild(teacherSection);
+    });
     
-    // Add course code if available
-    if (course?.code) {
-        const codeSpan = document.createElement('span');
-        codeSpan.className = 'lesson-code';
-        codeSpan.textContent = ` (${course.code})`;
-        subjectDiv.appendChild(codeSpan);
-    }
+    return timetable;
+}
+
+function createRoomsTimetable() {
+    const rooms = [...new Set(SharedData.schedule.map(l => l.roomId))]
+        .map(id => SharedData.getRoomById(id))
+        .filter(Boolean)
+        .sort((a, b) => a.name.localeCompare(b.name));
     
-    lessonDiv.appendChild(subjectDiv);
+    const timetable = document.createElement('div');
+    timetable.className = 'rooms-timetable';
     
-    // Add teacher
-    if (teacher) {
-        const teacherDiv = document.createElement('div');
-        teacherDiv.className = 'lesson-teacher';
-        teacherDiv.textContent = teacher.name;
-        lessonDiv.appendChild(teacherDiv);
-    }
+    rooms.forEach(room => {
+        const roomSection = document.createElement('div');
+        roomSection.className = 'room-section';
+        roomSection.innerHTML = `<h3>${room.name}</h3>`;
+        
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>اليوم</th>
+                    <th>الوقت</th>
+                    <th>المادة</th>
+                    <th>المدرس</th>
+                    <th>المدة</th>
+                    <th>النوع</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        const roomLessons = SharedData.schedule.filter(l => l.roomId === room.id)
+            .sort((a, b) => a.day.localeCompare(b.day) || a.hour - b.hour);
+            
+        roomLessons.forEach(lesson => {
+            const teacher = SharedData.getTeacherById(lesson.teacherId);
+            const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+            const courseType = course?.type || '';
+            const typeName = courseType === 'required' ? 'إجبارية' : 
+                            courseType === 'general' ? 'عامة' : 'اختيارية';
+            
+            table.querySelector('tbody').innerHTML += `
+                <tr>
+                    <td>${lesson.day}</td>
+                    <td>${SharedData.formatHourToAMPM(lesson.hour)}</td>
+                    <td>${course?.name || lesson.subject || 'غير معروف'}</td>
+                    <td>${teacher?.name || 'غير معروف'}</td>
+                    <td>${lesson.duration} ساعة</td>
+                    <td>${typeName}</td>
+                </tr>
+            `;
+        });
+        
+        roomSection.appendChild(table);
+        timetable.appendChild(roomSection);
+    });
     
-    // Add room
-    if (room) {
-        const roomDiv = document.createElement('div');
-        roomDiv.className = 'lesson-room';
-        roomDiv.textContent = room.name;
-        lessonDiv.appendChild(roomDiv);
-    }
-    
-    // Add duration if more than 1 hour
-    if (lesson.duration > 1) {
-        const durationDiv = document.createElement('div');
-        durationDiv.className = 'lesson-duration';
-        durationDiv.textContent = `${lesson.duration} ساعات`;
-        lessonDiv.appendChild(durationDiv);
-    }
-    
-    return lessonDiv;
+    return timetable;
 }
 
 function generateSchedule(options) {
@@ -453,7 +554,6 @@ function generateSchedule(options) {
     let bestScore = 0;
     let attempts = 0;
     
-    // Filter data based on department
     const teachers = options.deptFilter 
         ? SharedData.teachers.filter(t => t.department === options.deptFilter)
         : SharedData.teachers;
@@ -464,12 +564,22 @@ function generateSchedule(options) {
 
     console.log(`Processing ${teachers.length} teachers and ${rooms.length} rooms`);
     
-    // Sort teachers by those with least availability and longest durations first
+    // Sort teachers - priority courses first, then by availability
     const sortedTeachers = [...teachers].sort((a, b) => {
+        const aCourse = SharedData.getCourseById(a.courseId);
+        const bCourse = SharedData.getCourseById(b.courseId);
+        const aIsPriority = aCourse && (aCourse.type === 'required' || aCourse.type === 'general');
+        const bIsPriority = bCourse && (bCourse.type === 'required' || bCourse.type === 'general');
+        
+        // Priority courses first
+        if (aIsPriority !== bIsPriority) return bIsPriority - aIsPriority;
+        
+        // Then by availability
         const aSlots = calculateAvailableSlots(a);
         const bSlots = calculateAvailableSlots(b);
         if (aSlots !== bSlots) return aSlots - bSlots;
-        return (b.lessonDuration || 1) - (a.lessonDuration || 1);
+        
+        return (b.duration || 1) - (a.duration || 1);
     });
     
     if (options.prioritizeLabs) {
@@ -479,11 +589,11 @@ function generateSchedule(options) {
     console.group("Teacher Priority List:");
     sortedTeachers.forEach(teacher => {
         const course = SharedData.getCourseById(teacher.courseId);
-        console.log(`${teacher.name}: ${course?.name || 'No Course'} (${teacher.requiredLessons || 2} lessons, ${teacher.lessonDuration || 1}hr each, ${calculateAvailableSlots(teacher)} slots)`);
+        const priority = course && (course.type === 'required' || course.type === 'general') ? 'PRIORITY' : 'normal';
+        console.log(`${priority} ${teacher.name}: ${course?.name || 'No Course'} (${teacher.requiredLessons || 2} lessons, ${teacher.lessonDuration || 1}hr each, ${calculateAvailableSlots(teacher)} slots)`);
     });
     console.groupEnd();
     
-    // Determine generation parameters based on algorithm type
     let maxAttempts, timePerAttempt;
     switch (options.algorithm) {
         case 'fast':
@@ -509,14 +619,12 @@ function generateSchedule(options) {
         attempts++;
         const currentAttempt = attempts;
         
-        // Generate a schedule attempt
         const { schedule, conflicts } = generateScheduleAttempt(
             sortedTeachers, 
             rooms, 
             options
         );
         
-        // Calculate score for this attempt
         const score = calculateScheduleScore(
             schedule, 
             teachers, 
@@ -524,13 +632,11 @@ function generateSchedule(options) {
             options
         );
         
-        // Log attempt details
         console.group(`Attempt #${currentAttempt}`);
         console.log(`Score: ${score}%`);
         console.log(`Scheduled Lessons: ${schedule.length}`);
         console.log(`Conflicts: ${conflicts}`);
         
-        // Update best schedule if this is better
         if (score > bestScore || bestSchedule === null) {
             bestScore = score;
             bestSchedule = schedule;
@@ -538,7 +644,6 @@ function generateSchedule(options) {
             console.log("🔥 New best schedule found!");
             logScheduleDetails(schedule);
             
-            // Save to shared data if it's good enough
             if (score > 70) {
                 SharedData.schedule = schedule;
                 SharedData.lastScheduleGeneration = new Date().toISOString();
@@ -548,7 +653,6 @@ function generateSchedule(options) {
         
         console.groupEnd();
         
-        // Update UI
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const progress = Math.min(100, Math.floor((attempts / maxAttempts) * 100));
         
@@ -560,7 +664,6 @@ function generateSchedule(options) {
         document.getElementById('scheduledLessons').textContent = schedule.length;
         document.getElementById('conflictsCount').textContent = conflicts;
         
-        // Check if we should stop
         if (attempts >= maxAttempts || elapsed >= options.maxTime) {
             stopGeneration();
             console.group("=== Final Schedule ===");
@@ -586,21 +689,35 @@ function generateScheduleAttempt(teachers, rooms, options) {
     const schedule = [];
     let conflicts = 0;
     
-    // Initialize tracking structures
     const teacherAssignments = {};
     const roomAssignments = {};
+    const teacherDailySubjects = {};
+    const prioritySlots = {}; // Track slots reserved for priority courses
     
+    // Initialize priority slots tracking
+    days.forEach(day => {
+        prioritySlots[day] = Array(endHour - startHour).fill(false);
+    });
+    
+    // Initialize teacher assignments
     teachers.forEach(teacher => {
         const course = SharedData.getCourseById(teacher.courseId);
         teacherAssignments[teacher.id] = {
             assigned: 0,
-            required: teacher.requiredLessons || 2,
+            required: teacher.lessons || 2,
             daysUsed: {},
-            duration: teacher.lessonDuration || 1,
-            subject: course?.name || teacher.subject || 'مادة'
+            duration: teacher.duration || 1,
+            subject: course?.name || teacher.subject || 'مادة',
+            isPriority: course && (course.type === 'required' || course.type === 'general')
         };
+        
+        teacherDailySubjects[teacher.id] = {};
+        days.forEach(day => {
+            teacherDailySubjects[teacher.id][day] = new Set();
+        });
     });
     
+    // Initialize room assignments
     rooms.forEach(room => {
         roomAssignments[room.id] = {};
         days.forEach(day => {
@@ -610,10 +727,11 @@ function generateScheduleAttempt(teachers, rooms, options) {
     
     // Schedule each teacher's lessons
     for (const teacher of teachers) {
-        const lessonsToSchedule = teacher.requiredLessons || 2;
-        const duration = teacher.lessonDuration || 1;
-        const course = SharedData.getCourseById(teacher.courseId);
-        const subject = course?.name || teacher.subject || 'مادة';
+        const teacherData = teacherAssignments[teacher.id];
+        const lessonsToSchedule = teacherData.required;
+        const duration = teacherData.duration;
+        const subject = teacherData.subject;
+        const isPriority = teacherData.isPriority;
         
         for (let i = 0; i < lessonsToSchedule; i++) {
             const slot = findOptimalSlot(
@@ -625,7 +743,10 @@ function generateScheduleAttempt(teachers, rooms, options) {
                 roomAssignments, 
                 rooms, 
                 options,
-                duration
+                duration,
+                teacherDailySubjects,
+                prioritySlots,
+                isPriority
             );
             
             if (slot) {
@@ -638,24 +759,30 @@ function generateScheduleAttempt(teachers, rooms, options) {
                     duration: duration,
                     roomId: slot.roomId,
                     department: teacher.department,
+                    yearId: teacher.yearId,
+                    groupId: teacher.groupId,
                     requiresLab: teacher.requiresLab || false,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    isPriority: isPriority
                 };
                 
                 schedule.push(lesson);
                 
-                // Mark all hours in the duration as booked
+                // Block the room and time slots
                 for (let h = 0; h < duration; h++) {
                     const slotHour = slot.hour + h;
                     if (slotHour < endHour) {
                         const slotIndex = slotHour - startHour;
                         roomAssignments[lesson.roomId][lesson.day][slotIndex] = lesson.id;
+                        if (isPriority) {
+                            prioritySlots[lesson.day][slotIndex] = true;
+                        }
                     }
                 }
                 
-                teacherAssignments[teacher.id].assigned++;
-                teacherAssignments[teacher.id].daysUsed[slot.day] = 
-                    (teacherAssignments[teacher.id].daysUsed[slot.day] || 0) + 1;
+                teacherData.assigned++;
+                teacherData.daysUsed[slot.day] = (teacherData.daysUsed[slot.day] || 0) + 1;
+                teacherDailySubjects[teacher.id][slot.day].add(subject);
             } else {
                 conflicts++;
             }
@@ -665,24 +792,43 @@ function generateScheduleAttempt(teachers, rooms, options) {
     return { schedule, conflicts };
 }
 
-function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, roomAssignments, rooms, options, duration) {
+function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, roomAssignments, rooms, options, duration, teacherDailySubjects, prioritySlots, isPriority) {
     const availability = teacher.availability || {};
     const possibleSlots = [];
+    const subject = teacherAssignments[teacher.id].subject;
     
-    // Collect all possible slots that can accommodate the duration
     days.forEach(day => {
+        if (teacherDailySubjects[teacher.id][day].has(subject)) {
+            return;
+        }
+        
         if (!availability[day] || availability[day].length === 0) return;
         
-        // If minimizing gaps, prefer days already used by this teacher
         if (options.minimizeGaps && teacherAssignments[teacher.id]?.daysUsed?.[day] === 0) {
             return;
         }
         
         availability[day].forEach(hour => {
-            // Check if this hour can accommodate the full duration
             if (hour + duration > endHour) return;
             
-            // Verify all hours in the duration are available
+            // Check if any slot is already reserved for priority courses
+            if (isPriority) {
+                let slotAvailable = true;
+                for (let h = 0; h < duration; h++) {
+                    const slotHour = hour + h;
+                    if (slotHour >= endHour) {
+                        slotAvailable = false;
+                        break;
+                    }
+                    const slotIndex = slotHour - startHour;
+                    if (prioritySlots[day][slotIndex]) {
+                        slotAvailable = false;
+                        break;
+                    }
+                }
+                if (!slotAvailable) return;
+            }
+            
             let allHoursAvailable = true;
             for (let h = 0; h < duration; h++) {
                 const checkHour = hour + h;
@@ -691,10 +837,11 @@ function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, 
                     roomAssignments, 
                     day, 
                     checkHour, 
-                    1, // Check single hour availability
+                    1,
                     teacher.requiresLab,
                     startHour,
-                    endHour
+                    endHour,
+                    teacher.id
                 );
                 
                 if (availableRooms.length === 0) {
@@ -712,7 +859,8 @@ function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, 
                     duration, 
                     teacher.requiresLab,
                     startHour,
-                    endHour
+                    endHour,
+                    teacher.id
                 );
                 
                 if (availableRooms.length > 0) {
@@ -730,14 +878,11 @@ function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, 
     
     if (possibleSlots.length === 0) return null;
     
-    // Sort slots based on optimization criteria
     possibleSlots.sort((a, b) => {
-        // Prefer days already used by this teacher (minimize gaps)
         if (options.minimizeGaps && a.teacherDayUsage !== b.teacherDayUsage) {
             return b.teacherDayUsage - a.teacherDayUsage;
         }
         
-        // Prefer slots that are earlier in the day
         return a.hour - b.hour;
     });
     
@@ -748,18 +893,32 @@ function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, 
     };
 }
 
-function findAvailableRooms(rooms, roomAssignments, day, hour, duration, needsLab, startHour, endHour) {
+function findAvailableRooms(rooms, roomAssignments, day, hour, duration, needsLab, startHour, endHour, teacherId) {
+    const teacher = SharedData.getTeacherById(teacherId);
+    const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+    const isPriorityCourse = course && (course.type === 'required' || course.type === 'general');
+    
     return rooms.filter(room => {
+        // Skip if room doesn't meet lab requirements
         if (needsLab && (!room.type || room.type === 'room')) return false;
         
-        // Check if all required hours are available
+        // Check all time slots for this lesson
         for (let h = 0; h < duration; h++) {
             const slotHour = hour + h;
             if (slotHour >= endHour) return false;
             
             const slotIndex = slotHour - startHour;
-            if (roomAssignments[room.id][day][slotIndex] !== null) {
-                return false;
+            const existingLessonId = roomAssignments[room.id][day][slotIndex];
+            
+            if (existingLessonId !== null) {
+                // If this is a priority course, it needs exclusive slot
+                if (isPriorityCourse) return false;
+                
+                // Check if existing lesson is a priority course
+                const existingLesson = SharedData.schedule.find(l => l.id === existingLessonId);
+                if (existingLesson && existingLesson.isPriority) {
+                    return false;
+                }
             }
         }
         return true;
@@ -791,7 +950,7 @@ function calculateAvailableSlots(teacher) {
     const { startHour, endHour } = SharedData.getHoursRange();
     const availability = teacher.availability || {};
     let count = 0;
-    const duration = teacher.lessonDuration || 1;
+    const duration = teacher.duration || 1;
     
     days.forEach(day => {
         if (!availability[day] || availability[day].length === 0) return;
@@ -812,11 +971,9 @@ function calculateScheduleScore(schedule, teachers, conflicts, options) {
     const totalRequired = teachers.reduce((sum, t) => sum + (t.requiredLessons || 2), 0);
     let score = (schedule.length / totalRequired) * 70;
     
-    // Penalize for conflicts
     score -= conflicts * 2;
     
     if (options.balanceLoad) {
-        // Calculate teacher load balance
         const teacherLoads = {};
         teachers.forEach(t => {
             teacherLoads[t.id] = {
@@ -836,6 +993,18 @@ function calculateScheduleScore(schedule, teachers, conflicts, options) {
         
         const variance = calculateVariance(loadRatios);
         score += 30 * (1 - Math.min(1, variance));
+    }
+    
+    // Bonus for scheduling priority courses
+    const priorityCoursesScheduled = schedule.filter(l => l.isPriority).length;
+    const totalPriorityCourses = teachers.filter(t => {
+        const course = SharedData.getCourseById(t.courseId);
+        return course && (course.type === 'required' || course.type === 'general');
+    }).reduce((sum, t) => sum + (t.requiredLessons || 2), 0);
+    
+    if (totalPriorityCourses > 0) {
+        const priorityRatio = priorityCoursesScheduled / totalPriorityCourses;
+        score += 10 * priorityRatio; // Add up to 10% bonus for scheduling priority courses
     }
     
     return Math.max(0, Math.min(100, Math.round(score)));
@@ -901,7 +1070,6 @@ function logScheduleDetails(schedule) {
     
     console.group("Schedule Details");
     
-    // Group by day
     const days = SharedData.getDays();
     days.forEach(day => {
         const dayLessons = schedule.filter(l => l.day === day);
@@ -909,15 +1077,15 @@ function logScheduleDetails(schedule) {
         
         console.groupCollapsed(`${day} (${dayLessons.length} lessons)`);
         
-        // Sort by hour
         dayLessons.sort((a, b) => a.hour - b.hour);
         
         dayLessons.forEach(lesson => {
             const teacher = SharedData.getTeacherById(lesson.teacherId);
             const room = SharedData.getRoomById(lesson.roomId);
             const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+            const priority = lesson.isPriority ? 'PRIORITY' : 'normal';
             console.log(
-                `${lesson.hour}:00 - ${lesson.hour + lesson.duration}:00 | ` +
+                `${priority} ${lesson.hour}:00 - ${lesson.hour + lesson.duration}:00 | ` +
                 `Subject: ${course?.name || lesson.subject || 'N/A'} | ` +
                 `Teacher: ${teacher?.name || 'Unknown'} | ` +
                 `Room: ${room?.name || 'Unknown'} | ` +
@@ -928,7 +1096,6 @@ function logScheduleDetails(schedule) {
         console.groupEnd();
     });
     
-    // Teacher workload statistics
     console.group("Teacher Workload");
     const teacherStats = {};
     schedule.forEach(lesson => {
@@ -945,7 +1112,6 @@ function logScheduleDetails(schedule) {
     });
     console.groupEnd();
     
-    // Room utilization statistics
     console.group("Room Utilization");
     const roomStats = {};
     schedule.forEach(lesson => {
@@ -955,6 +1121,21 @@ function logScheduleDetails(schedule) {
     Object.entries(roomStats).forEach(([roomId, hours]) => {
         const room = SharedData.getRoomById(roomId);
         console.log(`${room?.name || 'Unknown'}: ${hours} hours`);
+    });
+    console.groupEnd();
+    
+    console.group("Priority Courses");
+    const priorityLessons = schedule.filter(l => l.isPriority);
+    console.log(`Scheduled ${priorityLessons.length} priority lessons`);
+    priorityLessons.forEach(lesson => {
+        const teacher = SharedData.getTeacherById(lesson.teacherId);
+        const room = SharedData.getRoomById(lesson.roomId);
+        const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+        console.log(
+            `${lesson.day} ${lesson.hour}:00 - ${lesson.hour + lesson.duration}:00 | ` +
+            `Subject: ${course?.name || lesson.subject || 'N/A'} | ` +
+            `Room: ${room?.name || 'Unknown'}`
+        );
     });
     console.groupEnd();
     

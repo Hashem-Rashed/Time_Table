@@ -2402,7 +2402,7 @@ select option[value="general"] {
     width: 100%;
     overflow-x: auto;
     margin-top: 20px;
-    background: white;
+    background-color: var(--card-bg);
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     padding: 20px;
@@ -3053,4 +3053,86 @@ select option[value="general"] {
     color: var(--text-secondary);
     margin-top: 0.25rem;
     font-style: italic;
+}
+.schedule-content-wrapper {
+  display: flex;
+  flex-direction: row-reverse; /* RTL layout */
+  gap: 20px;
+  padding: 20px;
+}
+
+.schedule-output {
+  flex: 1;
+  min-width: 0; /* Prevent flex item overflow */
+}
+
+.schedule-legend {
+  width: 250px;
+  padding: 15px;
+  background-color: var(--card-bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .schedule-content-wrapper {
+    flex-direction: column;
+  }
+  
+  .schedule-legend {
+    width: 100%;
+    margin-top: 20px;
+  }
+}
+
+/* Schedule Views */
+.daily-view, 
+.weekly-view, 
+.teacher-view, 
+.room-view {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+}
+
+th, td {
+  padding: 12px 15px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+th {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+
+/* Legend styles */
+.legend-items {
+  margin-top: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.legend-color {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  margin-left: 10px;
+}
+
+.legend-text {
+  font-size: 0.9rem;
 }
