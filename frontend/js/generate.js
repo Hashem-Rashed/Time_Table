@@ -1,3 +1,5 @@
+// generate.js - Complete Schedule Generation System
+
 document.addEventListener('DOMContentLoaded', () => {
     if (window.SharedData) {
         initGenerator();
@@ -20,14 +22,6 @@ function initGenerator() {
 function setupUI() {
     populateDepartmentFilter();
     updateReadinessChecks();
-    
-    const container = document.querySelector('.container');
-    if (!document.getElementById('timetableViews')) {
-        const timetableDiv = document.createElement('div');
-        timetableDiv.id = 'timetableViews';
-        timetableDiv.className = 'timetable-views hidden';
-        container.appendChild(timetableDiv);
-    }
 }
 
 function setupEventListeners() {
@@ -36,7 +30,6 @@ function setupEventListeners() {
     document.getElementById('viewScheduleBtn')?.addEventListener('click', renderTimetables);
     document.getElementById('exportBtn')?.addEventListener('click', exportSchedule);
     document.getElementById('tryAgainBtn')?.addEventListener('click', resetUI);
-    
     document.getElementById('deptFilter')?.addEventListener('change', updateReadinessChecks);
 }
 
@@ -158,7 +151,8 @@ function getGenerationOptions() {
         maxTime,
         balanceLoad: document.getElementById('balanceLoad').checked,
         minimizeGaps: document.getElementById('minimizeGaps').checked,
-        prioritizeLabs: document.getElementById('prioritizeLabs').checked
+        prioritizeLabs: document.getElementById('prioritizeLabs').checked,
+        preferMorning: document.getElementById('preferMorning').checked
     };
 }
 
@@ -227,8 +221,6 @@ function showResultsUI(results) {
         results.score > 75 ? 'good' :
         results.score > 50 ? 'fair' : 'poor'
     );
-    
-    renderTimetables();
 }
 
 function resetUI() {
@@ -249,64 +241,45 @@ function renderTimetables() {
     const timetableContainer = document.getElementById('timetableViews');
     if (!timetableContainer) return;
 
-    timetableContainer.innerHTML = '';
+    // Clear existing content but keep the tab structure
+    document.getElementById('daily-view').innerHTML = '';
+    document.getElementById('weekly-view').innerHTML = '';
+    document.getElementById('teachers-view').innerHTML = '';
+    document.getElementById('rooms-view').innerHTML = '';
+
+    // Populate each view
+    document.getElementById('daily-view').appendChild(createDailyTimetable());
+    document.getElementById('weekly-view').appendChild(createWeeklyTimetable());
+    document.getElementById('teachers-view').appendChild(createTeachersTimetable());
+    document.getElementById('rooms-view').appendChild(createRoomsTimetable());
+
+    // Show the container
     timetableContainer.classList.remove('hidden');
 
-    const tabs = document.createElement('div');
-    tabs.className = 'timetable-tabs';
-    tabs.innerHTML = `
-        <button class="timetable-tab active" data-view="daily">عرض يومي</button>
-        <button class="timetable-tab" data-view="weekly">عرض أسبوعي</button>
-        <button class="timetable-tab" data-view="teachers">حسب المدرسين</button>
-        <button class="timetable-tab" data-view="rooms">حسب القاعات</button>
-    `;
-    timetableContainer.appendChild(tabs);
+    // Set up tab switching
+    setupTimetableTabs();
+}
 
-    const tabContent = document.createElement('div');
-    tabContent.className = 'timetable-tab-content';
-    
-    const dailyView = document.createElement('div');
-    dailyView.className = 'timetable-view active';
-    dailyView.id = 'daily-view';
-    dailyView.appendChild(createDailyTimetable());
-    tabContent.appendChild(dailyView);
+function setupTimetableTabs() {
+    const tabs = document.querySelectorAll('.timetable-tab');
+    const views = document.querySelectorAll('.timetable-view');
 
-    const weeklyView = document.createElement('div');
-    weeklyView.className = 'timetable-view';
-    weeklyView.id = 'weekly-view';
-    weeklyView.appendChild(createWeeklyTimetable());
-    tabContent.appendChild(weeklyView);
-
-    const teachersView = document.createElement('div');
-    teachersView.className = 'timetable-view';
-    teachersView.id = 'teachers-view';
-    teachersView.appendChild(createTeachersTimetable());
-    tabContent.appendChild(teachersView);
-
-    const roomsView = document.createElement('div');
-    roomsView.className = 'timetable-view';
-    roomsView.id = 'rooms-view';
-    roomsView.appendChild(createRoomsTimetable());
-    tabContent.appendChild(roomsView);
-
-    timetableContainer.appendChild(tabContent);
-
-    tabs.querySelectorAll('.timetable-tab').forEach(tab => {
+    tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            tabs.querySelectorAll('.timetable-tab').forEach(t => t.classList.remove('active'));
+            // Remove active class from all tabs and views
+            tabs.forEach(t => t.classList.remove('active'));
+            views.forEach(v => v.classList.remove('active'));
+
+            // Add active class to clicked tab and corresponding view
             tab.classList.add('active');
-            
-            tabContent.querySelectorAll('.timetable-view').forEach(view => {
-                view.classList.remove('active');
-            });
-            document.getElementById(`${tab.dataset.view}-view`).classList.add('active');
+            const viewId = `${tab.dataset.view}-view`;
+            document.getElementById(viewId).classList.add('active');
         });
     });
 }
 
 function createDailyTimetable() {
     const days = SharedData.getDays();
-    const { startHour, endHour } = SharedData.getHoursRange();
     const timetable = document.createElement('div');
     timetable.className = 'daily-timetable';
     
@@ -883,7 +856,12 @@ function findOptimalSlot(teacher, days, startHour, endHour, teacherAssignments, 
             return b.teacherDayUsage - a.teacherDayUsage;
         }
         
-        return a.hour - b.hour;
+        // Prefer morning slots if option is enabled
+        if (options.preferMorning) {
+            return a.hour - b.hour;
+        }
+        
+        return 0;
     });
     
     return {

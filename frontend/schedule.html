@@ -48,27 +48,31 @@
       
       <div class="schedule-actions" id="scheduleActions">
         <div class="action-group">
-          <button id="downloadPdfBtn" class="btn-success">
+          <button id="downloadPdfBtn" class="btn-action btn-pdf">
             <span class="icon">📕</span>
             <span class="text">تحميل PDF</span>
           </button>
-          <button id="downloadExcelBtn" class="btn-success">
+          <button id="downloadExcelBtn" class="btn-action btn-excel">
             <span class="icon">📊</span>
             <span class="text">تحميل Excel</span>
           </button>
-        </div>
-        <div class="action-group">
-          <button id="printScheduleBtn" class="btn-secondary">
+          <button id="printScheduleBtn" class="btn-action btn-print">
             <span class="icon">🖨️</span>
             <span class="text">طباعة</span>
           </button>
-          <button id="refreshScheduleBtn" class="btn-secondary">
+        </div>
+        <div class="action-group">
+          <button id="refreshScheduleBtn" class="btn-action btn-refresh">
             <span class="icon">🔄</span>
-            <span class="text">تحديث</span>
+            <span class="text">تحديث الجدول</span>
           </button>
-          <button id="deleteScheduleBtn" class="btn-danger">
+          <button id="deleteScheduleBtn" class="btn-action btn-delete">
             <span class="icon">🗑️</span>
             <span class="text">حذف الجدول</span>
+          </button>
+          <button id="shareScheduleBtn" class="btn-action btn-share">
+            <span class="icon">🔗</span>
+            <span class="text">مشاركة</span>
           </button>
         </div>
       </div>
@@ -191,6 +195,27 @@
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentYear').textContent = new Date().getFullYear();
+      
+      // Add share functionality
+      document.getElementById('shareScheduleBtn')?.addEventListener('click', () => {
+        if (!SharedData.schedule || SharedData.schedule.length === 0) {
+          SharedData.showToast('لا يوجد جدول لمشاركته', 'warning');
+          return;
+        }
+        
+        // Create a shareable link
+        const scheduleData = JSON.stringify(SharedData.schedule);
+        const compressed = btoa(encodeURIComponent(scheduleData));
+        const url = `${window.location.origin}${window.location.pathname}?schedule=${compressed}`;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+          SharedData.showToast('تم نسخ رابط الجدول إلى الحافظة', 'success');
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          SharedData.showToast('فشل نسخ الرابط', 'error');
+        });
+      });
     });
   </script>
 </body>

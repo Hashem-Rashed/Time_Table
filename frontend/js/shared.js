@@ -1,5 +1,6 @@
 // shared.js - Final Version with Enhanced Dark Mode Support and Confirmation Dialog
 // Version 2.6 - Added confirmation dialog functionality
+// Updated with color generation utility
 
 (function() {
     // Check if SharedData already exists
@@ -67,6 +68,58 @@
             
             // Notify that SharedData is ready
             document.dispatchEvent(new Event('SharedDataReady'));
+        },
+        
+        // ======================
+        // ENHANCED COLOR GENERATION UTILITY
+        // ======================
+        generateColorForId: function(id, saturation = 80, lightness = 60) {
+            if (!id) return '#8e44ad'; // Default purple if no ID
+            
+            // Create a more robust hash from the ID
+            let hash = 0;
+            for (let i = 0; i < id.length; i++) {
+                hash = id.charCodeAt(i) + ((hash << 5) - hash);
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            
+            // Use golden ratio to distribute colors evenly
+            const goldenRatio = 0.618033988749895;
+            let hue = (hash * goldenRatio) % 1.0;
+            
+            // Convert to degrees (0-360)
+            hue = Math.floor(hue * 360);
+            
+            // Adjust saturation and lightness for better contrast
+            const adjustedSaturation = Math.min(100, saturation + (hash % 15));
+            const adjustedLightness = Math.max(20, Math.min(80, lightness + (hash % 10) - 5));
+            
+            // Convert to HSL color
+            const color = `hsl(${hue}, ${adjustedSaturation}%, ${adjustedLightness}%)`;
+            
+            // For dark mode, adjust lightness slightly
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                return this.adjustColorForDarkMode(color);
+            }
+            
+            return color;
+        },
+
+        // Helper method to adjust colors for dark mode
+        adjustColorForDarkMode: function(color) {
+            // Parse HSL values
+            const hslValues = color.match(/\d+/g);
+            if (!hslValues || hslValues.length < 3) return color;
+            
+            let [h, s, l] = hslValues.map(Number);
+            
+            // Increase lightness slightly for dark mode
+            l = Math.min(80, l + 10);
+            
+            // Reduce saturation slightly for better readability
+            s = Math.max(60, s - 10);
+            
+            return `hsl(${h}, ${s}%, ${l}%)`;
         },
         
         // ======================

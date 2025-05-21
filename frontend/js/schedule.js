@@ -1,4 +1,4 @@
-// schedule.js - Complete with Multiple Views and Full Functionality (Updated for Duration Fixes)
+// schedule.js - Final Version with Color Fixes
 
 document.addEventListener('DOMContentLoaded', () => {
     if (window.scheduleManager) {
@@ -239,7 +239,7 @@ class ScheduleManager {
                 const colorStyle = this.getColorStyle(lesson, dept);
                 
                 table.querySelector('tbody').innerHTML += `
-                    <tr ${colorStyle}>
+                    <tr style="${colorStyle}">
                         <td>${SharedData.formatHourToAMPM(lesson.hour)}</td>
                         <td>${course?.name || lesson.subject || 'غير معروف'}</td>
                         <td>${teacher?.name || 'غير معروف'}</td>
@@ -257,73 +257,103 @@ class ScheduleManager {
     }
 
     createWeeklyView(schedule) {
-        const days = SharedData.getDays();
-        const { startHour, endHour } = SharedData.getHoursRange();
-        const view = document.createElement('div');
-        view.className = 'weekly-view';
-        
-        const table = document.createElement('table');
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>الوقت</th>
-                    ${days.map(day => `<th>${day}</th>`).join('')}
-                </tr>
-            </thead>
-            <tbody>
-        `;
-        
+    const days = SharedData.getDays();
+    const { startHour, endHour } = SharedData.getHoursRange();
+    const view = document.createElement('div');
+    view.className = 'weekly-view';
+    
+    const table = document.createElement('table');
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>الوقت</th>
+                ${days.map(day => `<th>${day}</th>`).join('')}
+            </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    // Create a grid to track occupied cells
+    const occupiedCells = {};
+    days.forEach(day => {
+        occupiedCells[day] = {};
         for (let hour = startHour; hour < endHour; hour++) {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${SharedData.formatHourToAMPM(hour)}</td>`;
-            
-            days.forEach(day => {
-                // Find lessons that either start at this hour or are in progress
-                const lessons = schedule.filter(l => 
-                    l.day === day && hour >= l.hour && hour < l.hour + l.duration
-                );
-                
-                if (lessons.length > 0) {
-                    const lesson = lessons[0];
-                    // Only create cell if this is the starting hour
-                    if (hour === lesson.hour) {
-                        const cell = document.createElement('td');
-                        const teacher = SharedData.getTeacherById(lesson.teacherId);
-                        const room = SharedData.getRoomById(lesson.roomId);
-                        const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
-                        const dept = teacher ? SharedData.getDepartmentById(teacher.department) : null;
-                        
-                        const colorStyle = this.getColorStyle(lesson, dept);
-                        
-                        cell.innerHTML = `
-                            <div class="lesson-cell" ${colorStyle}>
-                                <div class="subject">${course?.name || lesson.subject || 'غير معروف'}</div>
-                                <div class="teacher">${teacher?.name || 'غير معروف'}</div>
-                                <div class="room">${room?.name || 'غير معروف'}</div>
-                                ${lesson.duration > 1 ? `<div class="duration">${lesson.duration} ساعات</div>` : ''}
-                            </div>
-                        `;
-                        
-                        if (lesson.duration > 1) {
-                            cell.rowSpan = lesson.duration;
-                            cell.classList.add('multi-hour-lesson');
-                        }
-                        
-                        row.appendChild(cell);
-                    }
-                } else {
-                    // Empty cell
-                    const cell = document.createElement('td');
-                    row.appendChild(cell);
-                }
-            });
-            
-            table.querySelector('tbody').appendChild(row);
+            occupiedCells[day][hour] = false;
         }
+    });
+
+    for (let hour = startHour; hour < endHour; hour++) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${SharedData.formatHourToAMPM(hour)}</td>`;
         
-        view.appendChild(table);
-        return view;
+        days.forEach(day => {
+            // Skip if this cell is already occupied by a multi-hour lesson
+            if (occupiedCells[day][hour]) {
+                return;
+            }
+            
+            const cell = document.createElement('td');
+            
+            // Find all lessons that start at this hour
+            const hourLessons = schedule.filter(lesson => 
+                lesson.day === day && 
+                lesson.hour === hour
+            );
+            
+            if (hourLessons.length > 0) {
+                const lessonsContainer = document.createElement('div');
+                lessonsContainer.className = 'lessons-container';
+                
+                hourLessons.forEach(lesson => {
+                    const teacher = SharedData.getTeacherById(lesson.teacherId);
+                    const room = SharedData.getRoomById(lesson.roomId);
+                    const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+                    const dept = teacher ? SharedData.getDepartmentById(teacher.department) : null;
+                    
+                    const colorStyle = this.getColorStyle(lesson, dept);
+                    
+                    const lessonDiv = document.createElement('div');
+                    lessonDiv.className = 'lesson-cell';
+                    lessonDiv.style.cssText = colorStyle;
+                    lessonDiv.innerHTML = `
+                        <div class="subject">${course?.name || lesson.subject || 'غير معروف'}</div>
+                        <div class="teacher">${teacher?.name || 'غير معروف'}</div>
+                        <div class="room">${room?.name || 'غير معروف'}</div>
+                        ${lesson.duration > 1 ? `<div class="duration">${lesson.duration} ساعات</div>` : ''}
+                    `;
+                    
+                    lessonsContainer.appendChild(lessonDiv);
+                    
+                    // Mark subsequent hours as occupied for multi-hour lessons
+                    if (lesson.duration > 1) {
+                        for (let h = 1; h < lesson.duration; h++) {
+                            const nextHour = hour + h;
+                            if (nextHour < endHour) {
+                                occupiedCells[day][nextHour] = true;
+                            }
+                        }
+                    }
+                });
+                
+                cell.appendChild(lessonsContainer);
+                
+                // Set rowspan for multi-hour lessons
+                const maxDuration = Math.max(...hourLessons.map(l => l.duration));
+                if (maxDuration > 1) {
+                    cell.rowSpan = maxDuration;
+                    cell.classList.add('multi-hour-cell');
+                }
+            }
+            
+            row.appendChild(cell);
+        });
+        
+        table.querySelector('tbody').appendChild(row);
     }
+    
+    view.appendChild(table);
+    return view;
+}
 
     createTeacherView(schedule) {
         const teachers = [...new Set(schedule.map(l => l.teacherId))]
@@ -364,7 +394,7 @@ class ScheduleManager {
                 const colorStyle = this.getColorStyle(lesson, dept);
                 
                 table.querySelector('tbody').innerHTML += `
-                    <tr ${colorStyle}>
+                    <tr style="${colorStyle}">
                         <td>${lesson.day}</td>
                         <td>${SharedData.formatHourToAMPM(lesson.hour)}</td>
                         <td>${course?.name || lesson.subject || 'غير معروف'}</td>
@@ -420,7 +450,7 @@ class ScheduleManager {
                 const colorStyle = this.getColorStyle(lesson, dept);
                 
                 table.querySelector('tbody').innerHTML += `
-                    <tr ${colorStyle}>
+                    <tr style="${colorStyle}">
                         <td>${lesson.day}</td>
                         <td>${SharedData.formatHourToAMPM(lesson.hour)}</td>
                         <td>${course?.name || lesson.subject || 'غير معروف'}</td>
@@ -444,17 +474,28 @@ class ScheduleManager {
         
         let color = '#8e44ad'; // Default purple
         
-        if (colorScheme === 'department' && dept?.color) {
-            color = dept.color;
-        } else if (colorScheme === 'year' && lesson.yearId) {
-            const year = SharedData.getStudentYearById(lesson.yearId);
-            if (year?.color) color = year.color;
-        } else if (colorScheme === 'subject' && lesson.courseId) {
-            const course = SharedData.getCourseById(lesson.courseId);
-            if (course?.color) color = course.color;
+        const teacher = SharedData.getTeacherById(lesson.teacherId);
+        const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+        
+        if (colorScheme === 'department') {
+            const departmentId = teacher?.department || lesson.department;
+            color = departmentId ? SharedData.generateColorForId(departmentId) : '#8e44ad';
+        } 
+        else if (colorScheme === 'year') {
+            const yearId = lesson.yearId || 'default-year';
+            color = SharedData.generateColorForId(yearId);
+        } 
+        else if (colorScheme === 'subject') {
+            const subjectId = course?.id || lesson.subject || 'default-subject';
+            color = SharedData.generateColorForId(subjectId);
         }
         
-        return `style="background-color: ${color}20; border-left: 3px solid ${color};"`;
+        // More distinct styling with higher contrast
+        return `
+            background-color: ${color}15;
+            border-left: 4px solid ${color};
+            box-shadow: 0 2px 4px ${color}20;
+        `;
     }
 
     filterSchedule() {
@@ -496,29 +537,67 @@ class ScheduleManager {
         let legendHTML = `<h3>مفتاح الألوان:</h3><div class="legend-items-container">`;
         
         if (colorScheme === 'department') {
-            SharedData.departments.forEach(dept => {
+            // Get unique departments from schedule
+            const departments = new Map();
+            SharedData.schedule.forEach(lesson => {
+                const teacher = SharedData.getTeacherById(lesson.teacherId);
+                const deptId = teacher?.department || lesson.department;
+                if (deptId && !departments.has(deptId)) {
+                    const dept = SharedData.getDepartmentById(deptId);
+                    if (dept) departments.set(deptId, dept);
+                }
+            });
+            
+            departments.forEach(dept => {
+                const color = SharedData.generateColorForId(dept.id);
                 legendHTML += `
                     <div class="legend-item">
-                        <span class="legend-color" style="background-color: ${dept.color}"></span>
+                        <span class="legend-color" style="background-color: ${color}"></span>
                         <span class="legend-text">${dept.name} (${dept.code})</span>
                     </div>
                 `;
             });
-        } else if (colorScheme === 'year') {
-            SharedData.studentYears.forEach(year => {
+        }
+        else if (colorScheme === 'year') {
+            // Get unique years from schedule
+            const years = new Map();
+            SharedData.schedule.forEach(lesson => {
+                if (lesson.yearId && !years.has(lesson.yearId)) {
+                    const year = SharedData.getStudentYearById(lesson.yearId);
+                    if (year) years.set(lesson.yearId, year);
+                }
+            });
+            
+            years.forEach(year => {
+                const color = SharedData.generateColorForId(year.id);
                 legendHTML += `
                     <div class="legend-item">
-                        <span class="legend-color" style="background-color: ${year.color || '#8e44ad'}"></span>
+                        <span class="legend-color" style="background-color: ${color}"></span>
                         <span class="legend-text">${year.name}</span>
                     </div>
                 `;
             });
-        } else if (colorScheme === 'subject') {
-            SharedData.courses.forEach(course => {
+        }
+        else if (colorScheme === 'subject') {
+            // Get unique subjects from schedule
+            const subjects = new Map();
+            SharedData.schedule.forEach(lesson => {
+                const teacher = SharedData.getTeacherById(lesson.teacherId);
+                const course = teacher ? SharedData.getCourseById(teacher.courseId) : null;
+                const subjectId = course?.id || lesson.subject || 'default';
+                const subjectName = course?.name || lesson.subject || 'غير معروف';
+                
+                if (!subjects.has(subjectId)) {
+                    subjects.set(subjectId, subjectName);
+                }
+            });
+            
+            subjects.forEach((name, id) => {
+                const color = SharedData.generateColorForId(id);
                 legendHTML += `
                     <div class="legend-item">
-                        <span class="legend-color" style="background-color: ${course.color || '#8e44ad'}"></span>
-                        <span class="legend-text">${course.name} (${course.code})</span>
+                        <span class="legend-color" style="background-color: ${color}"></span>
+                        <span class="legend-text">${name}</span>
                     </div>
                 `;
             });

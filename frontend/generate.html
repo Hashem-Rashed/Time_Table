@@ -57,6 +57,7 @@
           <label><input type="checkbox" id="balanceLoad" checked> موازنة العبء على المدرسين</label>
           <label><input type="checkbox" id="minimizeGaps" checked> تقليل الفراغات بين الحصص</label>
           <label><input type="checkbox" id="prioritizeLabs"> إعطاء الأولوية للمواد التي تحتاج معامل</label>
+          <label><input type="checkbox" id="preferMorning" checked> تفضيل الحصص الصباحية</label>
         </div>
       </div>
 
@@ -176,7 +177,20 @@
       </div>
     </section>
 
-    <div id="timetableViews" class="timetable-views hidden"></div>
+    <div id="timetableViews" class="timetable-views hidden">
+      <div class="timetable-tabs">
+        <button class="timetable-tab active" data-view="daily">عرض يومي</button>
+        <button class="timetable-tab" data-view="weekly">عرض أسبوعي</button>
+        <button class="timetable-tab" data-view="teachers">حسب المدرسين</button>
+        <button class="timetable-tab" data-view="rooms">حسب القاعات</button>
+      </div>
+      <div class="timetable-tab-content">
+        <div id="daily-view" class="timetable-view active"></div>
+        <div id="weekly-view" class="timetable-view"></div>
+        <div id="teachers-view" class="timetable-view"></div>
+        <div id="rooms-view" class="timetable-view"></div>
+      </div>
+    </div>
   </main>
 
   <script src="js/shared.js"></script>
